@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-31T20:30:00Z",
+  "title": "Design System: Assinafy for Nextcloud",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Assinafy Green",
+        "canonical": "#168a53",
+        "tonalRamp": ["#052f1a", "#07502d", "#0f6d40", "#168a53", "#3aa66e", "#70c394", "#a9dfbf", "#e8f7ee"]
+      },
+      "primary-strong": {
+        "role": "primary",
+        "displayName": "Assinafy Green Strong",
+        "canonical": "#0f6d40",
+        "tonalRamp": ["#042817", "#064526", "#0a5a34", "#0f6d40", "#368b5f", "#69ad87", "#a1d2b7", "#e5f4eb"]
+      }
+    },
+    "typographyMeta": {
+      "display": {"displayName": "Application Display", "purpose": "The Assinafy application title."},
+      "headline": {"displayName": "Work Area Headline", "purpose": "Workflow steps and work areas."},
+      "body": {"displayName": "Nextcloud Body", "purpose": "Instructions, values, and recovery copy."},
+      "label": {"displayName": "Operational Label", "purpose": "Fields, table headings, and compact actions."}
+    },
+    "shadows": [
+      {"name": "panel-ambient", "value": "0 10px 30px rgb(0 0 0 / 8%)", "purpose": "Lift the complete desktop work panel from the page field."}
+    ],
+    "motion": [
+      {"name": "reduced-motion", "value": "none", "purpose": "Disable transitions and smooth scrolling when the user requests reduced motion."}
+    ],
+    "breakpoints": [
+      {"name": "workflow-stack", "value": "840px"},
+      {"name": "narrow", "value": "600px"}
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one action that advances or completes the current workflow gate.",
+      "html": "<button class=\"ds-button-primary\">Review price</button>",
+      "css": ".ds-button-primary { color: #fff; border: 1px solid #0f6d40; border-radius: 8px; background: #0f6d40; padding: 8px 16px; font: 600 14px system-ui, sans-serif; } .ds-button-primary:hover { background: #168a53; } .ds-button-primary:focus-visible { outline: 3px solid color-mix(in srgb, #168a53 55%, transparent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "description": "A full-column Nextcloud-style operational field.",
+      "html": "<label class=\"ds-field\">Document title<input value=\"Service agreement\"></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; color: #222; font: 600 14px system-ui, sans-serif; } .ds-field input { min-height: 42px; border: 1px solid #d8d8d8; border-radius: 8px; padding: 8px 12px; font: 400 14px system-ui, sans-serif; } .ds-field input:focus-visible { outline: 3px solid color-mix(in srgb, #168a53 55%, transparent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Work Area Tabs",
+      "kind": "nav",
+      "description": "Horizontal navigation between signing, documents, contracts, and webhooks.",
+      "html": "<nav class=\"ds-tabs\"><button class=\"ds-tab ds-active\">Send</button><button class=\"ds-tab\">Documents</button></nav>",
+      "css": ".ds-tabs { display: flex; border-bottom: 1px solid #d8d8d8; } .ds-tab { min-height: 46px; padding: 0 20px; border: 0; background: transparent; box-shadow: inset 0 -3px 0 transparent; font: 600 14px system-ui, sans-serif; } .ds-tab.ds-active { color: #0f6d40; box-shadow: inset 0 -3px 0 #168a53; } .ds-tab:focus-visible { outline: 3px solid color-mix(in srgb, #168a53 55%, transparent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Work Block",
+      "kind": "card",
+      "refersTo": "work-surface",
+      "description": "A flat task region inside the complete app panel.",
+      "html": "<section class=\"ds-work-block\"><h2>Choose a PDF</h2><p>Files are read from your Nextcloud account.</p></section>",
+      "css": ".ds-work-block { padding: 22px; border: 1px solid #d8d8d8; border-radius: 12px; background: #fff; color: #222; font: 14px system-ui, sans-serif; } .ds-work-block h2 { margin: 0 0 8px; font-size: 24px; letter-spacing: -0.02em; } .ds-work-block p { margin: 0; color: #5f6368; max-width: 70ch; }"
+    },
+    {
+      "name": "Connection Status",
+      "kind": "custom",
+      "description": "Compact connection health shown beside connect or disconnect actions.",
+      "html": "<span class=\"ds-status\">Connected</span>",
+      "css": ".ds-status { display: inline-flex; align-items: center; gap: 8px; color: #222; font: 600 14px system-ui, sans-serif; } .ds-status::before { width: 9px; height: 9px; content: ''; border-radius: 50%; background: #168a53; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Nextcloud Signing Desk",
+    "overview": "The extension is an operational surface inside Nextcloud. It inherits the host system and reserves Assinafy green for workflow and successful states.",
+    "keyCharacteristics": ["Nextcloud-native controls and theme inheritance", "Assinafy green reserved for active workflow and success", "Linear send flow with a distinct price gate", "Responsive operational grids"],
+    "rules": [
+      {"name": "The Operational Accent Rule", "body": "Green carries a state or primary action; it is not decorative filler.", "section": "colors"},
+      {"name": "The Host Theme Rule", "body": "Neutral colors come from Nextcloud variables with safe fallbacks.", "section": "colors"},
+      {"name": "The Single-Elevation Rule", "body": "The complete work panel may lift; nested tasks stay flat and bordered.", "section": "elevation"}
+    ],
+    "dos": ["Do inherit Nextcloud theme variables for neutral surfaces and text.", "Do keep quote review adjacent to the final send action."],
+    "donts": ["Don't use Assinafy green on controls that are not primary, selected, or successful.", "Don't add shadows to nested task regions."]
+  }
+}

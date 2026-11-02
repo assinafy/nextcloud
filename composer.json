@@ -1,0 +1,51 @@
+{
+  "name": "assinafy/nextcloud",
+  "description": "Send and track Nextcloud PDFs with Assinafy",
+  "type": "project",
+  "license": "MIT",
+  "require": {
+    "ext-json": "*",
+    "ext-mbstring": "*",
+    "ext-openssl": "*",
+    "php": "^8.3"
+  },
+  "require-dev": {
+    "bamarni/composer-bin-plugin": "^1.9",
+    "phpunit/phpunit": "^12.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "OCA\\Assinafy\\": "lib/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "OCA\\Assinafy\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "lint": "find appinfo lib templates tests -name '*.php' -print0 | xargs -0 -n1 php -l",
+    "lint:style": "phpcs -n",
+    "test": "php tests/run.php",
+    "test:phpunit": "phpunit",
+    "psalm": "psalm.phar --no-cache --threads=1 --no-progress",
+    "post-install-cmd": [
+      "[ $COMPOSER_DEV_MODE -eq 0 ] || composer bin all install --ansi"
+    ],
+    "post-update-cmd": [
+      "[ $COMPOSER_DEV_MODE -eq 0 ] || composer bin all update --ansi"
+    ]
+  },
+  "config": {
+    "sort-packages": true,
+    "allow-plugins": {
+      "bamarni/composer-bin-plugin": true
+    }
+  },
+  "extra": {
+    "bamarni-bin": {
+      "bin-links": true,
+      "forward-command": true
+    }
+  }
+}

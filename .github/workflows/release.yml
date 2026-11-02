@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  appstore:
+    name: Build, sign and publish to the Nextcloud App Store
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check that the tag matches appinfo/info.xml
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version="$(sed -n 's:.*<version>\([^<]*\)</version>.*:\1:p' appinfo/info.xml)"
+          if [ "v$version" != "$TAG" ]; then
+            echo "Release tag $TAG does not match app version $version" >&2
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Build and sign the archive
+        env:
+          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+          APP_PUBLIC_CRT: ${{ secrets.APP_PUBLIC_CRT }}
+        run: |
+          install -d -m 700 ~/.nextcloud/certificates
+          printf '%s\n' "$APP_PRIVATE_KEY" > ~/.nextcloud/certificates/assinafy.key
+          printf '%s\n' "$APP_PUBLIC_CRT" > ~/.nextcloud/certificates/assinafy.crt
+          chmod 600 ~/.nextcloud/certificates/assinafy.key
+          ./scripts/package.sh
+          test -s "build/assinafy-$VERSION.tar.gz.sig"
+
+      - name: Attach the archive to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG" "build/assinafy-$VERSION.tar.gz" --clobber
+
+      - name: Publish the release to apps.nextcloud.com
+        env:
+          APPSTORE_TOKEN: ${{ secrets.APPSTORE_TOKEN }}
+          TAG: ${{ github.event.release.tag_name }}
+          NIGHTLY: ${{ github.event.release.prerelease }}
+        run: |
+          url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/download/$TAG/assinafy-$VERSION.tar.gz"
+          signature="$(tr -d '\n' < "build/assinafy-$VERSION.tar.gz.sig")"
+          curl --fail-with-body --show-error --silent -X POST https://apps.nextcloud.com/api/v1/apps/releases \
+            -H "Authorization: Token $APPSTORE_TOKEN" \
+            -H 'Content-Type: application/json' \
+            -d "{\"download\": \"$url\", \"signature\": \"$signature\", \"nightly\": $NIGHTLY}"
+
+      - name: Remove signing material
+        if: always()
+        run: rm -rf ~/.nextcloud/certificates

@@ -1,0 +1,550 @@
+:root {
+	--assinafy-green: #168a53;
+	--assinafy-green-strong: #0f6d40;
+	--assinafy-green-soft: color-mix(in srgb, var(--assinafy-green) 11%, var(--color-main-background, #fff));
+	--assinafy-border: var(--color-border, #d8d8d8);
+	--assinafy-surface: var(--color-main-background, #fff);
+	--assinafy-surface-alt: var(--color-background-dark, #f5f5f5);
+	--assinafy-text: var(--color-main-text, #222);
+	--assinafy-muted: var(--color-text-maxcontrast, #5f6368);
+	--assinafy-danger: var(--color-error, #c52828);
+	--assinafy-warning: #925c00;
+	--assinafy-radius: 12px;
+}
+
+.assinafy-app {
+	box-sizing: border-box;
+	min-height: 100%;
+	padding: clamp(18px, 3vw, 40px);
+	color: var(--assinafy-text);
+	background: var(--assinafy-surface-alt);
+	scrollbar-color: var(--assinafy-green) transparent;
+}
+
+/* Component display rules below must not override the hidden attribute set by app.js. */
+.assinafy-app [hidden] {
+	display: none !important;
+}
+
+.assinafy-app *,
+.assinafy-app *::before,
+.assinafy-app *::after {
+	box-sizing: border-box;
+}
+
+.assinafy-app ::selection {
+	color: #fff;
+	background: var(--assinafy-green-strong);
+}
+
+.assinafy-header,
+.assinafy-panel,
+.assinafy-locked {
+	width: min(1180px, 100%);
+	margin-inline: auto;
+}
+
+.assinafy-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 28px;
+	padding: 6px 2px 26px;
+}
+
+.assinafy-header h1 {
+	margin: 0 0 5px;
+	font-size: clamp(28px, 3vw, 42px);
+	font-weight: 700;
+	letter-spacing: -0.03em;
+}
+
+.assinafy-header p,
+.assinafy-panel-heading p,
+.assinafy-block-heading p {
+	max-width: 70ch;
+	margin: 0;
+	color: var(--assinafy-muted);
+}
+
+.assinafy-connection-actions,
+.assinafy-primary-actions,
+.assinafy-panel-heading,
+.assinafy-block-heading,
+.assinafy-filter-row,
+.assinafy-inline-field {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.assinafy-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-weight: 600;
+}
+
+.assinafy-status::before {
+	width: 9px;
+	height: 9px;
+	content: '';
+	border-radius: 50%;
+	background: var(--assinafy-warning);
+}
+
+.assinafy-status.is-connected::before {
+	background: var(--assinafy-green);
+}
+
+.assinafy-live {
+	position: fixed;
+	z-index: 1000;
+	right: 18px;
+	bottom: 18px;
+	max-width: min(420px, calc(100vw - 36px));
+}
+
+.assinafy-tabs {
+	display: flex;
+	width: min(1180px, 100%);
+	margin: 0 auto 18px;
+	overflow-x: auto;
+	border-bottom: 1px solid var(--assinafy-border);
+	scrollbar-width: thin;
+}
+
+.assinafy-tabs .assinafy-tab {
+	min-width: max-content;
+	min-height: 46px;
+	margin: 0;
+	padding: 0 20px;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: inset 0 -3px 0 transparent;
+	font-weight: 600;
+}
+
+.assinafy-tabs .assinafy-tab.is-active {
+	color: var(--assinafy-green-strong);
+	box-shadow: inset 0 -3px 0 var(--assinafy-green);
+}
+
+.assinafy-panel {
+	padding: clamp(18px, 3vw, 34px);
+	border-radius: var(--assinafy-radius);
+	background: var(--assinafy-surface);
+	box-shadow: 0 10px 30px rgb(0 0 0 / 8%);
+}
+
+.assinafy-panel > h3 {
+	margin-top: 34px;
+}
+
+.assinafy-send-grid {
+	display: grid;
+	grid-template-columns: minmax(280px, 0.82fr) minmax(360px, 1.18fr);
+	gap: 28px;
+}
+
+.assinafy-work-block {
+	margin: 0 0 28px;
+	padding: 22px;
+	border: 1px solid var(--assinafy-border);
+	border-radius: var(--assinafy-radius);
+	background: var(--assinafy-surface);
+}
+
+.assinafy-work-block h2,
+.assinafy-work-block h3,
+.assinafy-panel-heading h2,
+.assinafy-quote h2,
+.assinafy-locked h2 {
+	margin: 0 0 8px;
+	font-size: clamp(20px, 2vw, 25px);
+	letter-spacing: -0.02em;
+}
+
+.assinafy-block-heading,
+.assinafy-panel-heading {
+	justify-content: space-between;
+	margin-bottom: 20px;
+}
+
+.assinafy-path {
+	margin: 0 0 8px;
+	color: var(--assinafy-muted);
+	font-variant-numeric: tabular-nums;
+	word-break: break-all;
+}
+
+.assinafy-file-list {
+	max-height: 330px;
+	margin-bottom: 18px;
+	overflow: auto;
+	border-block: 1px solid var(--assinafy-border);
+	scrollbar-color: var(--assinafy-green) transparent;
+}
+
+.assinafy-file-row {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: center;
+	width: 100%;
+	min-height: 48px;
+	margin: 0;
+	padding: 8px 4px;
+	gap: 10px;
+	border: 0;
+	border-bottom: 1px solid var(--assinafy-border);
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	text-align: left;
+}
+
+.assinafy-file-row:last-child {
+	border-bottom: 0;
+}
+
+.assinafy-file-row.is-folder {
+	grid-template-columns: minmax(0, 1fr);
+	font-weight: 600;
+}
+
+.assinafy-file-row.is-folder::before {
+	content: '›';
+	float: right;
+	order: 2;
+	font-size: 22px;
+}
+
+.assinafy-file-row small {
+	color: var(--assinafy-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.assinafy-recipient {
+	position: relative;
+	margin: 0 0 16px;
+	padding: 18px;
+	border: 0;
+	border-radius: var(--assinafy-radius);
+	background: var(--assinafy-green-soft);
+}
+
+.assinafy-recipient legend {
+	padding: 0 6px;
+	font-weight: 700;
+}
+
+.assinafy-recipient-grid,
+.assinafy-form-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 14px 16px;
+}
+
+.assinafy-recipient label,
+.assinafy-form-grid label,
+.assinafy-filter-row label,
+.assinafy-options label,
+#assinafy-admin-form > label {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	font-weight: 600;
+}
+
+.assinafy-app input:not([type='checkbox']):not([type='radio']),
+.assinafy-app select,
+.assinafy-app textarea,
+#assinafy-admin input {
+	width: 100%;
+	min-height: 42px;
+	margin: 0;
+}
+
+.assinafy-app textarea {
+	resize: vertical;
+}
+
+.assinafy-app input:focus-visible,
+.assinafy-app select:focus-visible,
+.assinafy-app textarea:focus-visible,
+.assinafy-app button:focus-visible,
+#assinafy-admin input:focus-visible,
+#assinafy-admin button:focus-visible {
+	outline: 3px solid color-mix(in srgb, var(--assinafy-green) 55%, transparent);
+	outline-offset: 2px;
+}
+
+.assinafy-app button.primary,
+#assinafy-admin button.primary {
+	color: #fff;
+	border-color: var(--assinafy-green-strong);
+	background: var(--assinafy-green-strong);
+}
+
+.assinafy-app button.primary:hover:not(:disabled),
+#assinafy-admin button.primary:hover:not(:disabled) {
+	background: var(--assinafy-green);
+}
+
+.assinafy-remove-recipient {
+	margin-top: 14px;
+}
+
+.assinafy-check {
+	display: inline-flex !important;
+	flex-direction: row !important;
+	align-items: center;
+	gap: 8px !important;
+	font-weight: 500 !important;
+}
+
+.assinafy-options {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 180px;
+	gap: 24px;
+}
+
+.assinafy-inline-field input {
+	max-width: 110px;
+}
+
+.assinafy-contract-details summary {
+	cursor: pointer;
+	font-size: 18px;
+	font-weight: 700;
+}
+
+.assinafy-contract-details[open] summary {
+	margin-bottom: 20px;
+}
+
+.assinafy-form-grid label span {
+	color: var(--assinafy-muted);
+	font-size: 13px;
+	font-weight: 400;
+}
+
+.assinafy-quote {
+	margin: 4px 0 22px;
+	padding: 24px;
+	border-radius: var(--assinafy-radius);
+	background: var(--assinafy-green-soft);
+}
+
+.assinafy-quote-summary {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	margin-block: 18px;
+	border-block: 1px solid color-mix(in srgb, var(--assinafy-green) 30%, transparent);
+}
+
+.assinafy-quote-summary > div {
+	display: flex;
+	flex-direction: column;
+	padding: 16px 12px;
+}
+
+.assinafy-quote-summary strong {
+	font-size: clamp(22px, 3vw, 32px);
+	font-variant-numeric: tabular-nums;
+}
+
+.assinafy-quote-summary span {
+	color: var(--assinafy-muted);
+}
+
+.assinafy-good {
+	color: var(--assinafy-green-strong);
+	font-weight: 700;
+}
+
+.assinafy-warning {
+	color: var(--assinafy-warning);
+	font-weight: 700;
+}
+
+.assinafy-primary-actions {
+	justify-content: flex-end;
+	margin-top: 20px;
+}
+
+.assinafy-panel-heading {
+	margin-bottom: 26px;
+}
+
+.assinafy-filter-row {
+	align-items: end;
+	margin-bottom: 20px;
+}
+
+.assinafy-filter-row label {
+	width: min(300px, 100%);
+}
+
+.assinafy-table-wrap {
+	width: 100%;
+	overflow-x: auto;
+	scrollbar-color: var(--assinafy-green) transparent;
+}
+
+.assinafy-table-wrap table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.assinafy-table-wrap th,
+.assinafy-table-wrap td {
+	padding: 13px 10px;
+	border-bottom: 1px solid var(--assinafy-border);
+	text-align: left;
+	vertical-align: middle;
+}
+
+.assinafy-table-wrap th {
+	color: var(--assinafy-muted);
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+}
+
+.assinafy-table-wrap td:last-child {
+	white-space: nowrap;
+}
+
+.assinafy-table-wrap td button {
+	margin: 2px 4px 2px 0;
+}
+
+.assinafy-empty {
+	margin: 0;
+	padding: 28px 12px;
+	color: var(--assinafy-muted);
+	text-align: center;
+}
+
+.assinafy-pagination {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 10px;
+	margin-top: 16px;
+}
+
+.assinafy-pagination span {
+	min-width: 70px;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+}
+
+.assinafy-event-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+	gap: 9px 18px;
+	margin-block: 10px 18px;
+}
+
+.assinafy-secret {
+	margin: 0 0 26px;
+	padding: 18px;
+	border: 1px solid var(--assinafy-warning);
+	border-radius: var(--assinafy-radius);
+	background: color-mix(in srgb, #f6c453 18%, var(--assinafy-surface));
+}
+
+.assinafy-secret code,
+#assinafy-callback-url {
+	display: block;
+	max-width: 100%;
+	margin: 10px 0;
+	padding: 10px;
+	overflow-wrap: anywhere;
+	border-radius: 6px;
+	background: var(--assinafy-surface-alt);
+}
+
+.assinafy-locked {
+	padding: clamp(28px, 6vw, 70px);
+	border-radius: var(--assinafy-radius);
+	background: var(--assinafy-surface);
+	text-align: center;
+}
+
+#assinafy-admin-form {
+	max-width: 720px;
+}
+
+#assinafy-admin-status {
+	margin-inline-start: 8px;
+}
+
+@media (max-width: 840px) {
+	.assinafy-send-grid,
+	.assinafy-options {
+		grid-template-columns: 1fr;
+	}
+
+	.assinafy-header {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.assinafy-connection-actions {
+		flex-wrap: wrap;
+	}
+}
+
+@media (max-width: 600px) {
+	.assinafy-app {
+		padding: 14px 10px 28px;
+	}
+
+	.assinafy-panel {
+		padding: 16px;
+		border-radius: 0;
+		box-shadow: none;
+	}
+
+	.assinafy-work-block,
+	.assinafy-recipient {
+		padding: 16px;
+	}
+
+	.assinafy-recipient-grid,
+	.assinafy-form-grid,
+	.assinafy-quote-summary {
+		grid-template-columns: 1fr;
+	}
+
+	.assinafy-block-heading,
+	.assinafy-panel-heading,
+	.assinafy-filter-row {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.assinafy-filter-row label {
+		width: 100%;
+	}
+
+	.assinafy-primary-actions {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.assinafy-primary-actions button {
+		width: 100%;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.assinafy-app * {
+		scroll-behavior: auto !important;
+		transition: none !important;
+	}
+}

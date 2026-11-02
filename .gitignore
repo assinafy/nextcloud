@@ -1,0 +1,12 @@
+/.idea/
+/.phpunit.cache/
+/.vscode/
+/AGENTS.md
+/CLAUDE.md
+/build/
+/coverage/
+/vendor/
+/.DS_Store
+/composer.lock
+/vendor-bin/*/composer.lock
+/vendor-bin/*/vendor/

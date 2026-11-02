@@ -1,0 +1,15 @@
+# Development files stay out of the release archive built by `make package`.
+/.gitattributes export-ignore
+/.github export-ignore
+/.gitignore export-ignore
+/.impeccable export-ignore
+/composer.json export-ignore
+/DESIGN.md export-ignore
+/Makefile export-ignore
+/phpcs.xml export-ignore
+/phpunit.xml export-ignore
+/PRODUCT.md export-ignore
+/psalm.xml export-ignore
+/scripts export-ignore
+/tests export-ignore
+/vendor-bin export-ignore
