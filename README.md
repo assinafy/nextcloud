@@ -1,97 +1,94 @@
-# Assinafy for Nextcloud
+# Assinafy para Nextcloud
 
-Assinafy for Nextcloud sends PDF files stored in Nextcloud to the Assinafy API, tracks documents and contract terms, and manages outbound webhook endpoints. Each user connects one Assinafy workspace with OAuth 2.0 Authorization Code and PKCE; access and refresh tokens remain encrypted in that user's Nextcloud configuration.
+*Português · [Read in English](README.en.md)*
 
-## Requirements
+O Assinafy para Nextcloud envia arquivos PDF armazenados no Nextcloud para a API da Assinafy, acompanha documentos e termos de contrato e gerencia endpoints de webhook. Cada usuário conecta um workspace da Assinafy com OAuth 2.0 Authorization Code e PKCE; os tokens de acesso e de atualização ficam criptografados na configuração do Nextcloud desse usuário.
+
+## Requisitos
 
 - Nextcloud 31–35
-- PHP 8.3, 8.4, or 8.5 with JSON, mbstring, and OpenSSL
-- HTTPS on the Nextcloud server and on webhook destinations
-- An Assinafy OAuth public client with the callback URL shown in Nextcloud Administration settings
-- An Assinafy plan and member permissions that allow the requested signing, contract, and webhook operations
+- PHP 8.3, 8.4 ou 8.5 com JSON, mbstring e OpenSSL
+- HTTPS no servidor Nextcloud e nos destinos de webhook
+- Um cliente OAuth público da Assinafy com a URL de retorno exibida nas Configurações de administração do Nextcloud
+- Um plano da Assinafy e permissões de membro que permitam as operações de assinatura, contratos e webhooks solicitadas
 
-## Install
+## Instalação
 
-The installed directory must be named `assinafy`.
+Quando o app estiver disponível na App Store do Nextcloud, instale o **Assinafy** em **Aplicativos**. Para instalar um pacote de versão manualmente, extraia-o em um diretório de apps do Nextcloud com permissão de escrita; o diretório instalado deve se chamar `assinafy`.
 
 ```sh
-cd /path/to/nextcloud/apps
+cd /caminho/para/nextcloud/apps
 tar -xzf assinafy-0.3.0.tar.gz
-php /path/to/nextcloud/occ app:enable assinafy
+php /caminho/para/nextcloud/occ app:enable assinafy
 ```
 
-For an App Store release, sign the `assinafy` directory with the Nextcloud app-signing process before building the final archive. The archive must contain one top-level `assinafy/` directory.
+Os pacotes de versão são assinados para a App Store do Nextcloud e contêm um único diretório `assinafy/` na raiz.
 
-## Configure OAuth
+## Configurar o OAuth
 
-1. In Nextcloud, open **Administration settings → Assinafy**.
-2. Copy the displayed callback URL.
-3. Register a public OAuth client in Assinafy with that exact callback URL. Do not configure a client secret.
-4. Grant these scopes: `documents:read`, `documents:write`, `templates:read`, `templates:write`, `account:read`, `webhooks:write`, `openid`, `profile`, `email`, and `offline_access`.
-5. Paste the OAuth client ID into Nextcloud and save.
+1. No Nextcloud, abra **Configurações de administração → Assinafy**.
+2. Copie a URL de retorno exibida.
+3. Cadastre na Assinafy um cliente OAuth público com exatamente essa URL de retorno. Não configure um segredo de cliente.
+4. Conceda estes escopos: `documents:read`, `documents:write`, `templates:read`, `templates:write`, `account:read`, `webhooks:write`, `openid`, `profile`, `email` e `offline_access`.
+5. Cole o ID do cliente OAuth no Nextcloud e salve.
 
-The integration discovers the authorization, token, revocation, and protected-resource endpoints. It accepts only the configured Assinafy issuer and HTTPS endpoints on the expected Assinafy origins.
+A integração descobre os endpoints de autorização, token, revogação e recurso protegido. Ela aceita apenas o emissor configurado da Assinafy e endpoints HTTPS nas origens esperadas da Assinafy.
 
-## Complete workflow
+## Fluxo completo
 
-1. Open **Assinafy** from the Nextcloud application navigation.
-2. Select **Connect Assinafy**, authorize the fixed scope set, and choose exactly one Assinafy workspace.
-3. In **Send**, browse the current user's Nextcloud files and select a PDF no larger than 25 MB.
-4. Set the Assinafy document title and add 1–50 recipients.
-5. Choose a verification path for each recipient:
+1. Abra **Assinafy** na navegação de aplicativos do Nextcloud.
+2. Selecione **Conectar à Assinafy**, autorize o conjunto fixo de escopos e escolha exatamente um workspace da Assinafy.
+3. Em **Enviar**, navegue pelos arquivos do usuário atual no Nextcloud e selecione um PDF de até 25 MB.
+4. Defina o título do documento na Assinafy e adicione de 1 a 50 signatários.
+5. Escolha uma forma de verificação para cada signatário:
 
-   - **Email:** `Email` verification with email notification.
-   - **WhatsApp:** `Whatsapp` verification with WhatsApp notification; an international phone number is required.
-   - **Biometric identity:** `IdDocumentFaceMatchBasic` verification; a valid CPF is required.
-   - **A1 / A3 digital certificate:** `DigitalCertificate` verification; a valid CPF or CNPJ is required, including the alphanumeric CNPJ format.
+   - **E-mail:** verificação `Email` com notificação por e-mail.
+   - **WhatsApp:** verificação `Whatsapp` com notificação por WhatsApp; é obrigatório um telefone em formato internacional.
+   - **Identidade biométrica:** verificação `IdDocumentFaceMatchBasic`; é obrigatório um CPF válido.
+   - **Certificado digital A1 / A3:** verificação `DigitalCertificate`; é obrigatório um CPF ou CNPJ válido, incluindo o formato de CNPJ alfanumérico.
 
-   Email and WhatsApp verification use the matching notification channel. Biometric and digital-certificate verification may notify by email or WhatsApp; WhatsApp notification requires an international phone number.
+   As verificações por e-mail e WhatsApp usam o canal de notificação correspondente. As verificações biométrica e por certificado digital podem notificar por e-mail ou WhatsApp; a notificação por WhatsApp exige um telefone em formato internacional.
 
-6. Choose parallel signing or ordered signing. Ordered recipients receive a one-based `step`. A digital-certificate signer with co-signers requires ordered signing so each certificate signer is alone in a signing step.
-7. Optionally add the recipient message, signing deadline, and contract lifecycle terms.
-8. Select **Review price**. The app uploads the PDF, waits for Assinafy metadata processing, and requests the current `virtual` assignment estimate.
-9. Review total credits, balances, itemized charges, extra document use, and resource availability.
-10. Select **Send for signature**. The server obtains a new estimate and rejects the send when any charge component changed or resources are insufficient.
-11. Use **Documents** to read recent Assinafy document state.
-12. Use **Contracts** to search tracked terms, edit them with the required current `updated_at` precondition, renew from the current term, or terminate with an optional reason.
-13. Use **Webhooks** to create, pause, resume, delete, or rotate a webhook endpoint; inspect recent deliveries; and retry a failed delivery.
+6. Escolha assinatura em paralelo ou em ordem. Na assinatura em ordem, cada signatário recebe um `step` iniciado em 1. Um signatário com certificado digital que tenha cossignatários exige assinatura em ordem, para que cada signatário com certificado fique sozinho em sua etapa.
+7. Opcionalmente, adicione a mensagem aos signatários, o prazo de assinatura e os termos do ciclo de vida do contrato.
+8. Selecione **Revisar preço**. O app envia o PDF, aguarda o processamento dos metadados na Assinafy e solicita a estimativa atual da solicitação `virtual`.
+9. Revise o total de créditos, os saldos, as cobranças detalhadas, o uso de documento extra e a disponibilidade de recursos.
+10. Selecione **Enviar para assinatura**. O servidor obtém uma nova estimativa e recusa o envio quando algum componente da cobrança mudou ou os recursos são insuficientes.
+11. Use **Documentos** para consultar o estado recente dos documentos na Assinafy.
+12. Use **Contratos** para pesquisar os termos acompanhados, editá-los com a pré-condição obrigatória do `updated_at` atual, renová-los a partir do termo vigente ou encerrá-los com um motivo opcional.
+13. Use **Webhooks** para criar, pausar, retomar, excluir ou rotacionar o segredo de um endpoint de webhook; consultar as entregas recentes; e reenviar uma entrega que falhou.
 
-When webhook signing is enabled, store the returned `whsec_…` secret immediately. OAuth applications receive it only when Assinafy creates it or rotates it. Receivers must verify the Standard Webhooks headers against the unmodified request body and reject stale timestamps.
+Quando a assinatura de webhooks estiver habilitada, guarde imediatamente o segredo `whsec_…` retornado. Aplicativos OAuth só o recebem quando a Assinafy o cria ou rotaciona. Os receptores devem verificar os cabeçalhos do Standard Webhooks sobre o corpo da requisição sem alterações e rejeitar carimbos de tempo antigos.
 
-## Operation boundaries
+## Limites de operação
 
-- The file picker uses Nextcloud's user-scoped file API. A file ID outside the authenticated user's file tree is rejected.
-- A send uses `method: "virtual"`; no signature fields are placed on the document.
-- A1 and A3 are signer-side ICP-Brasil certificate media handled by the same `DigitalCertificate` method.
-- Contact email conflicts, WhatsApp phone conflicts, and taxpayer-ID conflicts stop the send instead of changing an existing Assinafy contact silently.
-- If signing succeeds but contract-term storage fails, the response reports the signing assignment and the separate contract error.
-- Assinafy does not publish an atomic maximum-price or idempotency field for assignment creation. The app re-estimates immediately before creation; a connection loss during creation can still leave the final result unknown. Check **Documents** before starting another request from the same source file.
-- Disconnect removes the local encrypted grant before attempting token revocation.
+- O seletor de arquivos usa a API de arquivos do Nextcloud restrita ao usuário. Um ID de arquivo fora da árvore de arquivos do usuário autenticado é rejeitado.
+- O envio usa `method: "virtual"`; nenhum campo de assinatura é posicionado no documento.
+- A1 e A3 são mídias de certificado ICP-Brasil do lado do signatário, tratadas pelo mesmo método `DigitalCertificate`.
+- Conflitos de e-mail, de telefone de WhatsApp ou de CPF/CNPJ de um contato interrompem o envio em vez de alterar silenciosamente um contato existente na Assinafy.
+- Se a assinatura for criada, mas o armazenamento dos termos do contrato falhar, a resposta informa a solicitação de assinatura e, separadamente, o erro do contrato.
+- A Assinafy não publica um campo atômico de preço máximo nem de idempotência para a criação da solicitação de assinatura. O app refaz a estimativa imediatamente antes da criação; ainda assim, uma perda de conexão durante a criação pode deixar o resultado final desconhecido. Consulte **Documentos** antes de iniciar outra solicitação a partir do mesmo arquivo.
+- Ao desconectar, o app remove a autorização criptografada local antes de tentar revogar o token.
 
-## Documentation
+## Documentação
 
-- [User guide](docs/USER.md)
-- [Administration guide](docs/ADMIN.md)
-- [Extension API](docs/API.md)
-- [Development and release](docs/DEVELOPMENT.md)
-- [Security policy](SECURITY.md)
+- [Guia do usuário](docs/USER.md) (em inglês)
+- [Guia de administração](docs/ADMIN.md) (em inglês)
+- [API da extensão](docs/API.md) (em inglês)
+- [Desenvolvimento e versões](docs/DEVELOPMENT.md) (em inglês)
+- [Política de segurança](SECURITY.md) (em inglês)
 
-The upstream references are the [Assinafy API](https://api.assinafy.com.br/v1/docs) and the [Nextcloud app developer guide](https://docs.nextcloud.com/server/stable/developer_manual/).
+As referências de origem são a [API da Assinafy](https://api.assinafy.com.br/v1/docs) e o [guia de desenvolvimento de apps do Nextcloud](https://docs.nextcloud.com/server/stable/developer_manual/).
 
-## Development
+## Desenvolvimento
 
 ```sh
 composer install
-composer lint
-composer lint:style
-composer test
-composer test:phpunit
-node --check js/app.js
-node --check js/admin.js
+make check
 ```
 
-`make check` runs the local checks. After committing the release contents, `make package` creates `build/assinafy-<version>.tar.gz` from `HEAD` with the required top-level directory.
+O `make check` executa as verificações de sintaxe e estilo, os testes sem dependências e do PHPUnit, o Psalm contra a API OCP do Nextcloud, os testes de JavaScript e as verificações de metadados e traduções. O `make package` gera `build/assinafy-<versão>.tar.gz` a partir do `HEAD` com commit e o assina quando a chave e o certificado da App Store estão presentes; veja [Desenvolvimento e versões](docs/DEVELOPMENT.md).
 
-## License
+## Licença
 
 MIT
