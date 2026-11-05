@@ -13,7 +13,7 @@ Requires an Assinafy account. An administrator registers the Assinafy OAuth clie
 
 **Data sent to Assinafy:** only when a user sends a document does the app upload the selected PDF and the recipients' names, email addresses, phone numbers and CPF/CNPJ to Assinafy (https://www.assinafy.com.br). Contract terms and webhook settings are sent when a user saves them. OAuth tokens stay encrypted on the Nextcloud server and never reach the browser.
     ]]></description>
-    <version>0.3.0</version>
+    <version>0.3.1</version>
     <licence>MIT</licence>
     <author homepage="https://www.assinafy.com.br">Assinafy</author>
     <documentation>

@@ -18,7 +18,7 @@ Once the app is listed in the Nextcloud App Store, install **Assinafy** from **A
 
 ```sh
 cd /path/to/nextcloud/apps
-tar -xzf assinafy-0.3.0.tar.gz
+tar -xzf assinafy-0.3.1.tar.gz
 php /path/to/nextcloud/occ app:enable assinafy
 ```
 
@@ -69,6 +69,7 @@ When webhook signing is enabled, store the returned `whsec_…` secret immediate
 - If signing succeeds but contract-term storage fails, the response reports the signing assignment and the separate contract error.
 - Assinafy does not publish an atomic maximum-price or idempotency field for assignment creation. The app re-estimates immediately before creation; a connection loss during creation can still leave the final result unknown. Check **Documents** before starting another request from the same source file.
 - Disconnect removes the local encrypted grant before attempting token revocation.
+- Deleting a Nextcloud user account removes that user's encrypted grant and attempts token revocation before deletion.
 
 ## Documentation
 

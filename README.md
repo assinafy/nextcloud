@@ -18,7 +18,7 @@ Quando o app estiver disponível na App Store do Nextcloud, instale o **Assinafy
 
 ```sh
 cd /caminho/para/nextcloud/apps
-tar -xzf assinafy-0.3.0.tar.gz
+tar -xzf assinafy-0.3.1.tar.gz
 php /caminho/para/nextcloud/occ app:enable assinafy
 ```
 
@@ -69,6 +69,7 @@ Quando a assinatura de webhooks estiver habilitada, guarde imediatamente o segre
 - Se a assinatura for criada, mas o armazenamento dos termos do contrato falhar, a resposta informa a solicitação de assinatura e, separadamente, o erro do contrato.
 - A Assinafy não publica um campo atômico de preço máximo nem de idempotência para a criação da solicitação de assinatura. O app refaz a estimativa imediatamente antes da criação; ainda assim, uma perda de conexão durante a criação pode deixar o resultado final desconhecido. Consulte **Documentos** antes de iniciar outra solicitação a partir do mesmo arquivo.
 - Ao desconectar, o app remove a autorização criptografada local antes de tentar revogar o token.
+- Ao excluir uma conta de usuário do Nextcloud, o app remove a autorização criptografada e tenta revogar o token desse usuário antes da exclusão.
 
 ## Documentação
 

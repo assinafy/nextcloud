@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.3.1] - 2026-11-05
+
+### Fixed
+
+- Deleting a Nextcloud user now removes local OAuth state and attempts token revocation.
+
 ## [0.3.0] - 2026-11-02
 
 First public release.
@@ -46,6 +52,7 @@ First public release.
 - Responsive English interface and Brazilian Portuguese localization.
 - Administration settings, automated checks, release packaging, and operator documentation.
 
+[0.3.1]: https://github.com/assinafy/nextcloud/releases/tag/v0.3.1
 [0.3.0]: https://github.com/assinafy/nextcloud/releases/tag/v0.3.0
 [0.2.0]: https://github.com/assinafy/nextcloud/releases/tag/v0.2.0
 [0.1.0]: https://github.com/assinafy/nextcloud/releases/tag/v0.1.0

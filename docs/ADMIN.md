@@ -28,6 +28,7 @@ The issuer must be `https://auth.assinafy.com.br`. The protected API resource mu
 - Each user's OAuth attempt and session are encrypted with authenticated `ICrypto` encryption on every supported version. Nextcloud 32–35 stores the ciphertext as sensitive `IUserConfig`; Nextcloud 31 stores it through `IConfig`. Values written by earlier app versions stay readable and are re-encrypted by the app's post-migration repair step during the app upgrade; `occ maintenance:repair` runs the same step. After a Nextcloud 31 to 32 upgrade, existing sessions stay connected and are rewritten as sensitive configuration at the next token refresh.
 - Tokens never enter template parameters, JavaScript state, logs, URLs, or user-visible API responses.
 - Disconnect deletes local session data before a best-effort refresh-token revocation.
+- Deleting a Nextcloud user account deletes its local OAuth state and attempts refresh-token revocation before Nextcloud removes the user.
 
 Back up the Nextcloud instance secret and configuration with the database. Changing the instance secret can make existing encrypted application configuration unreadable and require users to reconnect.
 

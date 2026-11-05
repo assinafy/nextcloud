@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Assinafy\Tests\Unit;
 
 use OCA\Assinafy\Exception\AssinafyException;
+use OCA\Assinafy\Listener\UserDeletedListener;
 use OCA\Assinafy\Service\ConfigService;
 use OCA\Assinafy\Service\OAuthService;
 use OCA\Assinafy\Service\SessionStore;
@@ -18,6 +19,7 @@ use OCP\IConfig;
 use OCP\IURLGenerator;
 use OCP\Security\ICrypto;
 use OCP\Security\ISecureRandom;
+use OCP\User\Events\BeforeUserDeletedEvent;
 use OCP\IUser;
 use OCP\IUserSession;
 use OCP\Lock\ILockingProvider;
@@ -195,6 +197,21 @@ final class OAuthServiceTest extends TestCase
         self::assertSame(['lock', 'delete:oauth_session', 'delete:oauth_attempt', 'unlock', 'request'], $this->events);
         self::assertArrayNotHasKey($this->key('oauth_session'), $this->userValues);
         self::assertArrayNotHasKey($this->key('oauth_attempt'), $this->userValues);
+    }
+
+    #[Test]
+    public function deletingAUserDisconnectsTheirOAuthGrant(): void
+    {
+        $this->put('oauth_session', $this->session());
+        $this->respondWith([$this->response(200, [])]);
+        $user = $this->createStub(IUser::class);
+        $user->method('getUID')->willReturn('nextcloud-user');
+
+        (new UserDeletedListener($this->oauth))->handle(new BeforeUserDeletedEvent($user));
+
+        self::assertArrayNotHasKey($this->key('oauth_session'), $this->userValues);
+        parse_str((string) $this->requests[0][2]['body'], $revocation);
+        self::assertSame('refresh', $revocation['token']);
     }
 
     /** @param list<IResponse> $responses */

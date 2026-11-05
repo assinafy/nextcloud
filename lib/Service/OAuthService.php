@@ -267,7 +267,11 @@ final class OAuthService
 
     public function disconnect(): void
     {
-        $userId = $this->userId();
+        $this->disconnectUser($this->userId());
+    }
+
+    public function disconnectUser(string $userId): void
+    {
         $lock = $this->lock($userId);
         try {
             $session = $this->store->session($userId);

@@ -408,6 +408,15 @@ function runServiceChecks(callable $check, callable $rejects): void
     $store = new SessionStore($legacy, new ServiceTestCrypto(), $modern);
     $check($store->session('nextcloud-user') === serviceTestSession() && $legacy->cachedReads === 0, 'Nextcloud 32+ read OAuth state through the deprecated IConfig API.');
 
+    // User deletion has no authenticated session but must still retire the user's external grant.
+    $client = new ServiceTestClient([serviceTestApiResponse([])]);
+    [$oauth, $modern] = serviceTestOAuth(new ServiceTestClientService($client));
+    $modern->values['other-user:assinafy:oauth_session'] = json_encode(['refreshToken' => 'other-refresh'] + serviceTestSession(), JSON_THROW_ON_ERROR);
+    $oauth->disconnectUser('other-user');
+    parse_str((string) ($client->requests[0][2]['body'] ?? ''), $revocation);
+    $check(!isset($modern->values['other-user:assinafy:oauth_session']), 'Disconnecting another user kept the stored grant.');
+    $check(($revocation['token'] ?? null) === 'other-refresh', 'Disconnecting another user did not revoke that user\'s refresh token.');
+
     // Another request rotated the tokens after this request cached them: never replay the old refresh token.
     $client = new ServiceTestClient([]);
     [$oauth, $modern] = serviceTestOAuth(new ServiceTestClientService($client), ['expiresAt' => ServiceTestTimeFactory::NOW - 1] + serviceTestSession());

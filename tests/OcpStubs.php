@@ -194,6 +194,21 @@ if (!interface_exists(IBootContext::class)) {
     }
 }
 
+namespace OCP\EventDispatcher;
+
+if (!class_exists(Event::class)) {
+    class Event
+    {
+    }
+}
+
+if (!interface_exists(IEventListener::class)) {
+    interface IEventListener
+    {
+        public function handle(Event $event): void;
+    }
+}
+
 namespace OCP\Http\Client;
 
 if (!interface_exists(IResponse::class)) {
@@ -239,6 +254,25 @@ if (!class_exists(LockedException::class)) {
         public function __construct(string $path = '')
         {
             parent::__construct('"' . $path . '" is locked');
+        }
+    }
+}
+
+namespace OCP\User\Events;
+
+use OCP\EventDispatcher\Event;
+use OCP\IUser;
+
+if (!class_exists(BeforeUserDeletedEvent::class)) {
+    class BeforeUserDeletedEvent extends Event
+    {
+        public function __construct(private readonly IUser $user)
+        {
+        }
+
+        public function getUser(): IUser
+        {
+            return $this->user;
         }
     }
 }
