@@ -14,11 +14,11 @@ The connection belongs to the current Nextcloud user. Disconnecting one user doe
 4. Choose a method:
 
    - **Email** sends the notification by email.
-   - **WhatsApp** requires an international number with country code and sends the notification through WhatsApp.
+   - **WhatsApp** requires a Brazilian number with area code (no country code needed) or, for another country, + and the country code, and sends the notification through WhatsApp.
    - **Biometric identity** requires a valid CPF.
    - **A1 / A3 digital certificate** requires a valid CPF or CNPJ. Alphanumeric CNPJ values are supported.
 
-   Email and WhatsApp verification always use their matching notification channel. For biometric and digital-certificate verification, choose email or WhatsApp notification. WhatsApp notification requires an international number with country code.
+   Email and WhatsApp verification always use their matching notification channel. For biometric and digital-certificate verification, choose email or WhatsApp notification. WhatsApp notification requires a Brazilian number with area code or, for another country, + and the country code.
 
 5. Turn on ordered signing when each recipient must wait for the previous person. Ordered signing is required when a digital-certificate signer has any co-signers.
 6. Add an optional message and choose a deadline from 1 to 365 days.

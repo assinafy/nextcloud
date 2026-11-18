@@ -71,6 +71,32 @@ final class DomainTest extends TestCase
     }
 
     #[Test]
+    public function aWhatsAppNumberTypedWithoutACountryCodeIsBrazilian(): void
+    {
+        $phone = static fn (string $typed): ?string => Recipient::fromArray([
+            'name' => 'Example Signer',
+            'email' => 'signer@example.invalid',
+            'method' => 'whatsapp',
+            'phone' => $typed,
+        ])->phone;
+
+        self::assertSame('+5551999431983', $phone('(51) 99943-1983'));
+        self::assertSame('+554832221100', $phone('48 3222-1100'));
+        self::assertSame('+5551999431983', $phone('55 51 99943-1983'));
+        self::assertSame('+5551999431983', $phone('+55 51 99943-1983'));
+        self::assertSame('+51912345678', $phone('+51 912 345 678'));
+        self::assertSame('+554832221100', $phone('55 48 3222-1100'));
+        self::assertSame('+14155552671', $phone('1 415 555 2671'));
+        self::assertSame('+56912345678', $phone('56 9 1234 5678'));
+        self::assertSame('+51912345678', $phone('(+51) 912 345 678'));
+        self::assertSame('+51912345678', $phone("\u{00A0}+51 912 345 678"));
+        self::assertSame('+51912345678', $phone("\u{202A}+51 912 345 678"));
+        self::assertSame('+554771234567', $phone('(47) 7123-4567'));
+        self::assertSame('+4771234567', $phone('+47 7123 4567'));
+        self::assertSame('+78912345678', $phone('78 9 1234 5678'));
+    }
+
+    #[Test]
     public function biometricIdentityRejectsCnpj(): void
     {
         $this->expectException(AssinafyException::class);

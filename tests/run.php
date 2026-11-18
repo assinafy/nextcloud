@@ -172,6 +172,16 @@ $check(OAuthError::message('Your account is locked, email support@example.invali
 $check(OAuthError::code('invalid_oauth_response') === 'invalid_oauth_response', 'Known OAuth callback error code was replaced.');
 $check(OAuthError::code('unexpected_failure') === 'connection_failed', 'Unknown OAuth failure code was passed to the page.');
 
+$check(
+    Recipient::fromArray([
+        'name' => 'Example Signer',
+        'email' => 'signer@example.invalid',
+        'method' => 'whatsapp',
+        'phone' => '(51) 99943-1983',
+    ])->phone === '+5551999431983',
+    'A WhatsApp number typed without a country code was not sent as Brazilian.',
+);
+
 require_once __DIR__ . '/ServiceChecks.php';
 \OCA\Assinafy\Tests\runServiceChecks($check, $rejects);
 

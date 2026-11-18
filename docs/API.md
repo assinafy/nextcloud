@@ -217,7 +217,7 @@ Mappings sent to Assinafy:
 | Local method | `verification_method` | Allowed local `notification` | Additional requirement |
 | --- | --- | --- | --- |
 | `email` | `Email` | `email` | — |
-| `whatsapp` | `Whatsapp` | `whatsapp` | International phone |
+| `whatsapp` | `Whatsapp` | `whatsapp` | Phone, 10 to 15 digits. A Brazilian area code and number typed without `+` is sent with `+55`; any other value is sent as `+` and its digits, so another country's number needs its country code |
 | `biometric` | `IdDocumentFaceMatchBasic` | `email` or `whatsapp` | Valid CPF |
 | `certificate` | `DigitalCertificate` | `email` or `whatsapp` | Valid CPF or CNPJ; ordered signing with co-signers |
 

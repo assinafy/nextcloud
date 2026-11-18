@@ -8,6 +8,13 @@ use OCA\Assinafy\Exception\AssinafyException;
 
 final class Recipient
 {
+    /**
+     * A Brazilian area code, then a mobile (9 and 8 digits), a landline (2 to 5 and 7 digits) or an
+     * older mobile (7 and 7 digits): the shapes libphonenumber's Brazil metadata accepts, which the
+     * API reads as Brazilian when there is no "+".
+     */
+    private const BRAZILIAN_NUMBER = '/^(?:1[1-9]|2[12478]|3[1-578]|4[1-9]|5[1345]|6[1-9]|7[134579]|8[1-9]|9[1-9])(?:9\d{8}|[2-57]\d{7})$/';
+
     private const METHODS = [
         'email' => 'Email',
         'whatsapp' => 'Whatsapp',
@@ -57,7 +64,7 @@ final class Recipient
             throw new AssinafyException('Email and WhatsApp verification must use their matching notification method.');
         }
         if ($notification === 'whatsapp' && $phone === null) {
-            throw new AssinafyException('WhatsApp notifications need an international phone number.');
+            throw new AssinafyException('WhatsApp notifications need a Brazilian number with area code, or + and the country code.');
         }
         if ($method === 'biometric' && !TaxId::isCpf($taxId ?? '')) {
             throw new AssinafyException('Biometric signatures need a valid CPF.');
@@ -101,9 +108,20 @@ final class Recipient
         ], static fn (?string $value): bool => $value !== null);
     }
 
+    /**
+     * E.164. A number typed without "+" that is a Brazilian area code and number gets 55; any
+     * other is sent with "+" in front of its digits, as typed. A "+" anywhere before the first
+     * digit counts, so a pasted number keeps its country.
+     */
     private static function phone(string $value): ?string
     {
         $digits = preg_replace('/\D+/', '', $value) ?? '';
-        return preg_match('/^[1-9]\d{9,14}$/', $digits) === 1 ? '+' . $digits : null;
+        if (preg_match('/^[1-9]\d{9,14}$/', $digits) !== 1) {
+            return null;
+        }
+
+        return preg_match('/^\D*\+/', $value) !== 1 && preg_match(self::BRAZILIAN_NUMBER, $digits) === 1
+            ? '+55' . $digits
+            : '+' . $digits;
     }
 }

@@ -43,11 +43,11 @@ The integration discovers the authorization, token, revocation, and protected-re
 5. Choose a verification path for each recipient:
 
    - **Email:** `Email` verification with email notification.
-   - **WhatsApp:** `Whatsapp` verification with WhatsApp notification; an international phone number is required.
+   - **WhatsApp:** `Whatsapp` verification with WhatsApp notification; a Brazilian number with area code (no country code needed) or, for another country, + and the country code is required.
    - **Biometric identity:** `IdDocumentFaceMatchBasic` verification; a valid CPF is required.
    - **A1 / A3 digital certificate:** `DigitalCertificate` verification; a valid CPF or CNPJ is required, including the alphanumeric CNPJ format.
 
-   Email and WhatsApp verification use the matching notification channel. Biometric and digital-certificate verification may notify by email or WhatsApp; WhatsApp notification requires an international phone number.
+   Email and WhatsApp verification use the matching notification channel. Biometric and digital-certificate verification may notify by email or WhatsApp; WhatsApp notification requires a Brazilian number with area code or, for another country, + and the country code.
 
 6. Choose parallel signing or ordered signing. Ordered recipients receive a one-based `step`. A digital-certificate signer with co-signers requires ordered signing so each certificate signer is alone in a signing step.
 7. Optionally add the recipient message, signing deadline, and contract lifecycle terms.

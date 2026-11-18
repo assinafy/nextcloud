@@ -43,11 +43,11 @@ A integração descobre os endpoints de autorização, token, revogação e recu
 5. Escolha uma forma de verificação para cada signatário:
 
    - **E-mail:** verificação `Email` com notificação por e-mail.
-   - **WhatsApp:** verificação `Whatsapp` com notificação por WhatsApp; é obrigatório um telefone em formato internacional.
+   - **WhatsApp:** verificação `Whatsapp` com notificação por WhatsApp; é obrigatório um telefone brasileiro com DDD (sem código de país) ou, de outro país, + e o código do país.
    - **Identidade biométrica:** verificação `IdDocumentFaceMatchBasic`; é obrigatório um CPF válido.
    - **Certificado digital A1 / A3:** verificação `DigitalCertificate`; é obrigatório um CPF ou CNPJ válido, incluindo o formato de CNPJ alfanumérico.
 
-   As verificações por e-mail e WhatsApp usam o canal de notificação correspondente. As verificações biométrica e por certificado digital podem notificar por e-mail ou WhatsApp; a notificação por WhatsApp exige um telefone em formato internacional.
+   As verificações por e-mail e WhatsApp usam o canal de notificação correspondente. As verificações biométrica e por certificado digital podem notificar por e-mail ou WhatsApp; a notificação por WhatsApp exige um telefone brasileiro com DDD ou, de outro país, + e o código do país.
 
 6. Escolha assinatura em paralelo ou em ordem. Na assinatura em ordem, cada signatário recebe um `step` iniciado em 1. Um signatário com certificado digital que tenha cossignatários exige assinatura em ordem, para que cada signatário com certificado fique sozinho em sua etapa.
 7. Opcionalmente, adicione a mensagem aos signatários, o prazo de assinatura e os termos do ciclo de vida do contrato.

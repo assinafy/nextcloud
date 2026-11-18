@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.3.2] - 2026-11-17
+
+### Fixed
+
+- A Brazilian WhatsApp number typed with its area code and without the country code is sent with `+55`. It was sent with a bare `+` in front of the area code, so an existing Assinafy contact with that number stopped the send as a conflict. Other numbers are sent as before.
+
 ## [0.3.1] - 2026-11-05
 
 ### Fixed

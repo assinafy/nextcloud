@@ -548,4 +548,31 @@ function runServiceChecks(callable $check, callable $rejects): void
     $rejects(static fn () => $api->send('document-test', serviceTestRecipients(), false, $quote['quoteId'], '', 30, []), 'Ambiguous assignment transport failure did not fail explicitly.');
     $assignmentRequests = array_values(array_filter($client->requests, static fn (array $request): bool => str_ends_with($request[1], '/assignments')));
     $check(count($assignmentRequests) === 1, 'Ambiguous assignment creation was retried automatically.');
+
+    $whatsapp = [[
+        'name' => 'Example Signer',
+        'email' => 'signer@example.invalid',
+        'method' => 'whatsapp',
+        'phone' => '(51) 99943-1983',
+    ]];
+    $client = new ServiceTestClient([
+        serviceTestApiResponse(['id' => 'document-test', 'status' => 'metadata_ready', 'assignment' => null]),
+        serviceTestApiResponse(serviceTestEstimate()),
+        serviceTestApiResponse(['id' => 'document-test', 'status' => 'metadata_ready', 'assignment' => null]),
+        serviceTestApiResponse(serviceTestEstimate()),
+        serviceTestApiResponse([[
+            'id' => 'signer-test',
+            'full_name' => 'Example Signer',
+            'email' => 'signer@example.invalid',
+            'whatsapp_phone_number' => '+5551999431983',
+        ]]),
+        serviceTestApiResponse(['id' => 'assignment-test']),
+    ]);
+    [$oauth] = serviceTestOAuth(new ServiceTestClientService($client), serviceTestSession());
+    $api = new AssinafyClient($oauth, new ServiceTestClientService($client), new ServiceTestTimeFactory());
+    $quote = $api->estimate('document-test', $whatsapp, false);
+    $result = $api->send('document-test', $whatsapp, false, $quote['quoteId'], '', 30, []);
+    $check($result['assignment']['id'] === 'assignment-test', 'A Brazilian number typed without 55 conflicted with its saved contact.');
+    $assignmentBody = json_decode($client->requests[5][2]['body'], true, 512, JSON_THROW_ON_ERROR);
+    $check($assignmentBody['signers'][0]['id'] === 'signer-test', 'The saved contact was not reused for a Brazilian number typed without 55.');
 }
