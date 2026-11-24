@@ -40,6 +40,9 @@ final class AuthController extends Controller
             return new DataResponse(['url' => $this->oauth->authorizationUrl()]);
         } catch (AssinafyException $error) {
             return new DataResponse(['error' => $error->errorCode(), 'message' => $error->getMessage()], $error->httpStatus());
+        } catch (Throwable $error) {
+            $this->logUnexpected('OAuth connection failed unexpectedly.', $error);
+            return new DataResponse(['error' => 'internal_error', 'message' => 'The operation could not be completed.'], 500);
         }
     }
 
@@ -78,6 +81,9 @@ final class AuthController extends Controller
             $this->oauth->disconnect();
         } catch (AssinafyException $error) {
             return new DataResponse(['error' => $error->errorCode(), 'message' => $error->getMessage()], $error->httpStatus());
+        } catch (Throwable $error) {
+            $this->logUnexpected('OAuth disconnect failed unexpectedly.', $error);
+            return new DataResponse(['error' => 'internal_error', 'message' => 'The operation could not be completed.'], 500);
         }
         return new DataResponse(['connected' => false]);
     }

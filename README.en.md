@@ -18,7 +18,7 @@ Once the app is listed in the Nextcloud App Store, install **Assinafy** from **A
 
 ```sh
 cd /path/to/nextcloud/apps
-tar -xzf assinafy-0.3.1.tar.gz
+tar -xzf assinafy-0.4.0.tar.gz
 php /path/to/nextcloud/occ app:enable assinafy
 ```
 
@@ -54,20 +54,22 @@ The integration discovers the authorization, token, revocation, and protected-re
 8. Select **Review price**. The app uploads the PDF, waits for Assinafy metadata processing, and requests the current `virtual` assignment estimate.
 9. Review total credits, balances, itemized charges, extra document use, and resource availability.
 10. Select **Send for signature**. The server obtains a new estimate and rejects the send when any charge component changed or resources are insufficient.
-11. Use **Documents** to read recent Assinafy document state.
-12. Use **Contracts** to search tracked terms, edit them with the required current `updated_at` precondition, renew from the current term, or terminate with an optional reason.
-13. Use **Webhooks** to create, pause, resume, delete, or rotate a webhook endpoint; inspect recent deliveries; and retry a failed delivery.
+11. To send several PDFs, select **Send several PDFs as an envelope**, enter its name, choose up to 20 PDFs and 20 recipients, then review and send. Recipients sign every selected PDF in parallel; certificate signing requires one recipient. Use **Envelopes** to track each document or cancel unsigned documents. Envelope sends do not include contract terms.
+12. Use **Documents** to read recent Assinafy document state.
+13. Use **Contracts** to search tracked terms, edit them with the required current `updated_at` precondition, renew from the current term, or terminate with an optional reason.
+14. Use **Webhooks** to create, pause, resume, delete, or rotate a webhook endpoint; inspect recent deliveries; and retry a failed delivery.
 
 When webhook signing is enabled, store the returned `whsec_…` secret immediately. OAuth applications receive it only when Assinafy creates it or rotates it. Receivers must verify the Standard Webhooks headers against the unmodified request body and reject stale timestamps.
 
 ## Operation boundaries
 
 - The file picker uses Nextcloud's user-scoped file API. A file ID outside the authenticated user's file tree is rejected.
+- Embedded signing is unavailable: Assinafy does not allow OAuth application tokens to create Embed sessions.
 - A send uses `method: "virtual"`; no signature fields are placed on the document.
 - A1 and A3 are signer-side ICP-Brasil certificate media handled by the same `DigitalCertificate` method.
 - Contact email conflicts, WhatsApp phone conflicts, and taxpayer-ID conflicts stop the send instead of changing an existing Assinafy contact silently.
 - If signing succeeds but contract-term storage fails, the response reports the signing assignment and the separate contract error.
-- Assinafy does not publish an atomic maximum-price or idempotency field for assignment creation. The app re-estimates immediately before creation; a connection loss during creation can still leave the final result unknown. Check **Documents** before starting another request from the same source file.
+- The app re-estimates and sends `max_total_credits` to prevent a higher charge. Assignment creation has no idempotency key; a connection loss during creation can still leave the final result unknown. Check **Documents** before starting another request from the same source file.
 - Disconnect removes the local encrypted grant before attempting token revocation.
 - Deleting a Nextcloud user account removes that user's encrypted grant and attempts token revocation before deletion.
 

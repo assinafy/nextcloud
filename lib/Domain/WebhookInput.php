@@ -8,9 +8,17 @@ use OCA\Assinafy\Exception\AssinafyException;
 
 final class WebhookInput
 {
-    /** @param array<string, mixed> $input @return array<string, mixed> */
+    /**
+     * @param array<string, mixed> $input
+     * @return array<string, mixed>
+     */
     public static function sanitize(array $input, bool $partial = false): array
     {
+        foreach (['url', 'email', 'name'] as $key) {
+            if (isset($input[$key]) && !is_string($input[$key])) {
+                throw new AssinafyException('Text fields must be strings.');
+            }
+        }
         $output = [];
         if (!$partial || array_key_exists('url', $input)) {
             $url = trim((string) ($input['url'] ?? ''));
@@ -29,7 +37,10 @@ final class WebhookInput
             if (!is_array($events) || $events === [] || count($events) > 100) {
                 throw new AssinafyException('Choose at least one webhook event.');
             }
-            $events = array_values(array_unique(array_map('strval', $events)));
+            if (!array_is_list($events) || array_filter($events, static fn (mixed $event): bool => !is_string($event))) {
+                throw new AssinafyException('Webhook events must be a list of strings.');
+            }
+            $events = array_values(array_unique($events));
             if (array_filter($events, static fn (string $event): bool => preg_match('/^[a-z][a-z0-9_]{0,99}$/', $event) !== 1)) {
                 throw new AssinafyException('A webhook event code is invalid.');
             }

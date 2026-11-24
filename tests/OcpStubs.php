@@ -92,6 +92,9 @@ if (!interface_exists(File::class)) {
     interface File extends Node
     {
         public function getSize(): int;
+
+        /** @return resource|false */
+        public function fopen(string $mode);
     }
 }
 

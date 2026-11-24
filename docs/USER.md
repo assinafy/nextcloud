@@ -29,6 +29,12 @@ The connection belongs to the current Nextcloud user. Disconnecting one user doe
 
 Changing the file, title, recipient, method, or signing order clears the displayed estimate. A changed Assinafy price also returns the workflow to price review.
 
+## Send an envelope
+
+In **Send**, select **Send several PDFs as an envelope**. Select up to 20 PDFs across your Nextcloud folders, enter an envelope name, and add up to 20 recipients. The selected filenames stay visible above the picker. Every recipient signs every selected PDF in parallel; digital-certificate signing requires a single recipient. Set the common deadline and optional message, review the combined estimate, and send once. Price review uploads the PDFs and resolves or creates the Assinafy contacts; it does not create the envelope. Envelopes require the corresponding Assinafy plan feature.
+
+Open **Envelopes** to page through sent envelopes and inspect each document's status. **Cancel envelope** cancels documents still open for signing and leaves completed documents unchanged. Contract terms are not included in envelope sends. Embedded signing is unavailable with OAuth application tokens; recipients use Assinafy invitations.
+
 ## Documents
 
 Open **Documents** to search recent Assinafy documents or filter by status. The list displays the Assinafy document ID so support and API operations can refer to the same resource.

@@ -193,7 +193,7 @@ final class OAuthService
     }
 
     /** @return array<string, mixed> */
-    public function refresh(bool $force): array
+    public function refresh(bool $force, ?string $rejectedToken = null): array
     {
         $userId = $this->userId();
         $lock = $this->lock($userId);
@@ -201,6 +201,9 @@ final class OAuthService
             $session = $this->store->session($userId);
             if ($session === null) {
                 throw new AssinafyException('Connect your Assinafy account first.', 401, 'not_connected');
+            }
+            if ($rejectedToken !== null && ($session['accessToken'] ?? null) !== $rejectedToken) {
+                return $session;
             }
             if (!$force && (int) ($session['expiresAt'] ?? 0) > $this->timeFactory->getTime() + 60) {
                 return $session;
@@ -289,11 +292,14 @@ final class OAuthService
         }
     }
 
-    public function invalidate(): void
+    public function invalidate(?string $rejectedToken = null): void
     {
         $userId = $this->userId();
         $lock = $this->lock($userId);
         try {
+            if ($rejectedToken !== null && ($this->store->session($userId)['accessToken'] ?? null) !== $rejectedToken) {
+                return;
+            }
             $this->store->deleteSession($userId);
             $this->store->deleteAttempt($userId);
         } finally {
@@ -338,7 +344,10 @@ final class OAuthService
         return $value;
     }
 
-    /** @param array<array-key, mixed> $data @return array<string, mixed> */
+    /**
+     * @param array<array-key, mixed> $data
+     * @return array<string, mixed>
+     */
     private function parseTokens(array $data, bool $refreshRequired): array
     {
         $accessToken = $data['access_token'] ?? null;
@@ -413,6 +422,7 @@ final class OAuthService
                 'timeout' => 20,
                 'connect_timeout' => 10,
                 'http_errors' => false,
+                'allow_redirects' => false,
             ]);
         } catch (Throwable $error) {
             throw new AssinafyException('Assinafy could not be reached.', 503, 'transport_error');
@@ -459,7 +469,12 @@ final class OAuthService
             }
         }
         // Nextcloud caches user configuration per request; a concurrent request may have rotated the tokens.
-        $this->store->reload($userId);
+        try {
+            $this->store->reload($userId);
+        } catch (Throwable $failure) {
+            $this->unlock($path);
+            throw $failure;
+        }
         return $path;
     }
 
@@ -478,7 +493,7 @@ final class OAuthService
         $scheme = parse_url($url, PHP_URL_SCHEME);
         $host = parse_url($url, PHP_URL_HOST);
         $port = parse_url($url, PHP_URL_PORT);
-        if (!is_string($scheme) || !is_string($host)) {
+        if (!is_string($scheme) || !is_string($host) || $port === false) {
             return '';
         }
         return strtolower($scheme) . '://' . strtolower($host) . ($port === null ? '' : ':' . $port);

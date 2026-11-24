@@ -16,6 +16,25 @@ use PHPUnit\Framework\TestCase;
 
 final class DomainTest extends TestCase
 {
+    #[Test]
+    public function nestedValuesAreRejectedBeforeStringCoercion(): void
+    {
+        $operations = [
+            static fn () => Recipient::fromArray(['name' => ['unexpected']]),
+            static fn () => ContractInput::sanitize(['counterparty_name' => ['unexpected']]),
+            static fn () => WebhookInput::sanitize(['name' => ['unexpected']], true),
+            static fn () => WebhookInput::sanitize(['events' => [['unexpected']]], true),
+        ];
+        foreach ($operations as $operation) {
+            try {
+                $operation();
+                self::fail('A nested value was accepted as text.');
+            } catch (AssinafyException $error) {
+                self::assertSame(400, $error->httpStatus());
+            }
+        }
+    }
+
     /** @return iterable<string, array{string, array<string, mixed>, array<string, mixed>}> */
     public static function recipientMethods(): iterable
     {

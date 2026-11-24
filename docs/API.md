@@ -17,6 +17,10 @@ Errors use:
 
 `400` indicates invalid input, `401` a missing or expired connection, `403` an Assinafy permission/feature refusal, `404` a missing user-owned or Assinafy resource, `409` a changed state or quote, or `oauth_busy` while another request updates the same user's OAuth connection, `429` rate limiting, `502` an invalid upstream response, and `503` transport failure.
 
+### `GET /`
+
+Renders the Nextcloud application HTML with the connection controls and Send, Documents, Envelopes, Contracts, and Webhooks work areas. The optional `error` query is restricted to the OAuth error codes listed below; unknown text is not displayed. It requires login but is exempt from CSRF because rendering is read-only.
+
 ## OAuth and state
 
 ### `POST /oauth/connect`
@@ -173,7 +177,7 @@ Response is the Assinafy document object:
 
 ### Recipient payload
 
-Estimate and send routes accept 1–50 recipients:
+Single-document estimate and send routes accept 1–50 recipients with unique email addresses; envelopes accept 1–20:
 
 ```json
 [
@@ -322,7 +326,7 @@ Request:
 }
 ```
 
-Immediately before creation, the extension repeats the estimate and checks `quoteId` plus `has_sufficient_resources`. Contacts are found by exact normalized email or created under `/accounts/{accountId}/signers`. Existing contacts must match the requested name and any supplied phone/CPF/CNPJ.
+Immediately before creation, the extension repeats the estimate and checks `quoteId` plus `has_sufficient_resources`. It sends the accepted `total_credits` as `max_total_credits`, so Assinafy atomically refuses a higher charge. `CreditCeilingExceeded` becomes local `409 quote_changed`. Contacts are found by exact normalized email or created under `/accounts/{accountId}/signers`. Existing contacts must match the requested name and any supplied phone/CPF/CNPJ.
 
 When `ordered` is false, all signers share an implicit signing step. Because Assinafy requires a `DigitalCertificate` signer to be alone in a step, a certificate signer may use parallel signing only when they are the sole recipient. With co-signers, `ordered` must be true.
 
@@ -340,7 +344,8 @@ Upstream assignment payload:
     }
   ],
   "message": "Please review and sign.",
-  "expires_at": "2026-11-30T12:00:00+00:00"
+  "expires_at": "2026-11-30T12:00:00+00:00",
+  "max_total_credits": 1.9
 }
 ```
 
@@ -412,13 +417,119 @@ Response:
 
 The proxy fixes `sort=-updated_at` and `per-page=50`.
 
+## Envelopes
+
+The app sends 1–20 uploaded PDFs to the same 1–20 recipients in parallel, using virtual assignments. A certificate signer must be the sole recipient. Envelope estimation resolves or creates contacts because Assinafy requires their IDs. Upload each PDF through `POST /api/documents/prepare` first; all documents must be `metadata_ready` and unassigned. Duplicate document IDs and recipient emails are rejected before HTTP requests. The workspace must have the Envelopes feature.
+
+### `POST /api/envelopes/estimate`
+
+Request:
+
+```json
+{
+  "name": "Agreement and annex",
+  "documentIds": ["document-one", "document-two"],
+  "recipients": [{"name": "Example Signer", "email": "signer@example.invalid", "method": "email", "notification": "email"}],
+  "expiresInDays": 30
+}
+```
+
+Names contain 1–255 characters without `<`. The deadline defaults to 30 days and accepts 1–365. No envelope is created by this operation. Response:
+
+```json
+{
+  "estimate": {
+    "documents": 1,
+    "credits": 0,
+    "needs_extra_document": true,
+    "extra_document_cost": 1,
+    "total_credits": 1,
+    "breakdown": [],
+    "document_balance": 0,
+    "credit_balance": 5,
+    "has_sufficient_resources": true,
+    "blocking_reason": null,
+    "message": null
+  },
+  "quoteId": "sha256-hex-value"
+}
+```
+
+Upstream request to `POST /v1/accounts/{accountId}/envelopes/estimate-cost`:
+
+```json
+{
+  "name": "Agreement and annex",
+  "message": "",
+  "signers": [{"id": "signer-id", "verification_method": "Email", "notification_methods": ["Email"]}],
+  "documents": [
+    {"id": "document-one", "method": "virtual", "signer_ids": ["signer-id"], "expires_at": "2026-12-24T12:00:00+00:00"},
+    {"id": "document-two", "method": "virtual", "signer_ids": ["signer-id"], "expires_at": "2026-12-24T12:00:00+00:00"}
+  ]
+}
+```
+
+### `POST /api/envelopes/send`
+
+Request uses the estimate fields plus the required `quoteId` and optional message (at most 2,000 characters):
+
+```json
+{
+  "name": "Agreement and annex",
+  "documentIds": ["document-one", "document-two"],
+  "recipients": [{"name": "Example Signer", "email": "signer@example.invalid", "method": "email", "notification": "email"}],
+  "expiresInDays": 30,
+  "quoteId": "sha256-hex-value",
+  "message": "Please review both PDFs."
+}
+```
+
+The server re-estimates, checks the quote and resources, then posts the same upstream body with the message and `max_total_credits` to `/v1/accounts/{accountId}/envelopes`. It never retries an ambiguous creation. Success means creation succeeded; it does not guarantee notification delivery. Contract terms are not part of an envelope send.
+
+Response is the Assinafy envelope object. Each entry has its own document status; an envelope has no aggregate status:
+
+```json
+{
+  "resource": "envelope",
+  "id": "envelope-id",
+  "name": "Agreement and annex",
+  "message": "Please review both PDFs.",
+  "documents": [
+    {"id": "document-one", "position": 1, "name": "agreement.pdf", "status": "pending_signature", "artifacts": {}, "signers": [{"id": "signer-id", "full_name": "Example Signer", "email": "signer@example.invalid", "whatsapp_phone_number": null, "completed": false, "signed_at": null}]},
+    {"id": "document-two", "position": 2, "name": "annex.pdf", "status": "pending_signature", "artifacts": {}, "signers": [{"id": "signer-id", "full_name": "Example Signer", "email": "signer@example.invalid", "whatsapp_phone_number": null, "completed": false, "signed_at": null}]}
+  ],
+  "counts": {"pending_signature": 2},
+  "signing_urls": [{"signer_id": "signer-id", "url": "https://app.assinafy.com.br/sign/example"}],
+  "created_at": "2026-11-24T12:00:00Z"
+}
+```
+
+### `GET /api/envelopes?page=1`
+
+Returns `{ "items": [<envelope object above>] }`, most recent first, with 20 envelopes per page. Listing artifacts contain only thumbnails. `counts` may be `null` when the envelope has no remaining documents.
+
+### `PUT /api/envelopes/{envelopeId}/cancel`
+
+No request body. Cancels documents that can still be cancelled; completed documents remain unchanged. Safe to repeat. Response:
+
+```json
+[
+  {"id": "document-one", "status": "rejected_by_user", "cancelled": true},
+  {"id": "document-two", "status": "certificated", "cancelled": false}
+]
+```
+
+### Embedded signing
+
+There are no Embed routes in this extension. Assinafy does not permit OAuth application tokens to manage embed origins or mint embed sessions. Signers use the invitations sent by Assinafy.
+
 ## Contract lifecycle
 
 Supported contract terms are `status`, `counterparty_name`, `counterparty_taxpayer_id`, `value`, `currency`, `start_date`, `end_date`, `auto_renew`, `renewal_term_months`, `notice_period_days`, `owner_id`, and `updated_at`. Empty editable values become `null`; `auto_renew` is always boolean. The bundled interface uses the common terms and optimistic `updated_at` precondition.
 
 ### `GET /api/contracts`
 
-Accepted query parameters are `status`, `search`, `counterparty`, `end_date_from`, `end_date_to`, `ending_within_days`, `external_system`, `external_id`, `sort`, `page`, and `per-page`. The proxy adds `expand=document` and clamps `per-page` to 1–100.
+Accepted query parameters are `status`, `search`, `counterparty`, `end_date_from`, `end_date_to`, `ending_within_days`, `external_system`, `external_id`, `sort`, `page`, and `per-page`. The proxy adds `expand=document` and clamps `per-page` to 1–50.
 
 Response:
 
@@ -655,7 +766,7 @@ The old secret stops working immediately.
 
 ### `GET /api/webhooks/deliveries`
 
-Accepted query parameters are `endpoint_id`, `event`, `delivered` (`true` or `false`), `from` and `to` Unix timestamps, `page`, and `per-page` (clamped to 1–100).
+Accepted query parameters are `endpoint_id`, `event`, `delivered` (`true` or `false`), `from` and `to` Unix timestamps, `page`, and `per-page` (clamped to 1–50).
 
 Response:
 

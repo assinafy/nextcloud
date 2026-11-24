@@ -7,13 +7,13 @@
     <description><![CDATA[
 Connect a Nextcloud account to Assinafy with OAuth 2.0 and send stored PDF files for signature.
 
-Supported signature and notification methods include email, WhatsApp, biometric identity verification and ICP-Brasil A1/A3 digital certificates. Contract lifecycle tracking and webhook management are included.
+Supported signature and notification methods include email, WhatsApp, biometric identity verification and ICP-Brasil A1/A3 digital certificates. Multi-document envelopes, contract lifecycle tracking and webhook management are included.
 
 Requires an Assinafy account. An administrator registers the Assinafy OAuth client once; each user then connects one Assinafy workspace.
 
-**Data sent to Assinafy:** only when a user sends a document does the app upload the selected PDF and the recipients' names, email addresses, phone numbers and CPF/CNPJ to Assinafy (https://www.assinafy.com.br). Contract terms and webhook settings are sent when a user saves them. OAuth tokens stay encrypted on the Nextcloud server and never reach the browser.
+**Data sent to Assinafy:** selecting Review price uploads the selected PDFs to Assinafy (https://www.assinafy.com.br). Envelope price review also resolves contacts using the recipients' names, email addresses, phone numbers and CPF/CNPJ; single-document sends transmit these details when sending. Contract terms and webhook settings are sent when a user saves them. OAuth tokens stay encrypted on the Nextcloud server and never reach the browser.
     ]]></description>
-    <version>0.3.2</version>
+    <version>0.4.0</version>
     <licence>MIT</licence>
     <author homepage="https://www.assinafy.com.br">Assinafy</author>
     <documentation>

@@ -13,9 +13,17 @@ final class ContractInput
     private const DATES = ['start_date', 'end_date'];
     private const INTEGERS = ['renewal_term_months' => [1, 600], 'notice_period_days' => [0, 3650]];
 
-    /** @param array<string, mixed> $input @return array<string, mixed> */
+    /**
+     * @param array<string, mixed> $input
+     * @return array<string, mixed>
+     */
     public static function sanitize(array $input, bool $allowEmpty = false): array
     {
+        foreach (['counterparty_name', 'counterparty_taxpayer_id', 'start_date', 'end_date', 'currency', 'status', 'owner_id', 'updated_at'] as $key) {
+            if (isset($input[$key]) && !is_string($input[$key])) {
+                throw new AssinafyException('Text fields must be strings.');
+            }
+        }
         $output = [];
         foreach (self::TEXT as $key => $max) {
             if (array_key_exists($key, $input)) {
@@ -26,7 +34,7 @@ final class ContractInput
                 $output[$key] = $value === '' ? null : $value;
             }
         }
-        if (($output['counterparty_taxpayer_id'] ?? null) !== null) {
+        if (isset($output['counterparty_taxpayer_id'])) {
             if (!TaxId::isValid((string) $output['counterparty_taxpayer_id'])) {
                 throw new AssinafyException('The counterparty taxpayer ID must be a valid CPF or CNPJ.');
             }
@@ -90,7 +98,7 @@ final class ContractInput
             }
             $output['owner_id'] = $ownerId === '' ? null : $ownerId;
         }
-        if (isset($output['start_date'], $output['end_date']) && $output['start_date'] !== null && $output['end_date'] !== null && $output['end_date'] < $output['start_date']) {
+        if (isset($output['start_date'], $output['end_date']) && $output['end_date'] < $output['start_date']) {
             throw new AssinafyException('The contract end date cannot be before its start date.');
         }
         if (array_key_exists('updated_at', $input)) {

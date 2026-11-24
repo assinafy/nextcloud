@@ -41,12 +41,12 @@ Live checks require a running Nextcloud instance and a controlled Assinafy works
 3. Upload a non-sensitive PDF smaller than 25 MB.
 4. Estimate and send once with every enabled signature method, both notification channels for biometric and certificate methods, a biometric CPF, and certificate CPF/CNPJ identities.
 5. Confirm delivery, signing status, and the final Assinafy document.
-6. Create contract terms, edit with the current timestamp, renew from the current term, and terminate a separate contract.
+6. Send two PDFs as an envelope, inspect their individual statuses, and cancel its unsigned documents. Then create contract terms, edit with the current timestamp, renew from the current term, and terminate a separate contract.
 7. Create a public HTTPS webhook receiver, verify a signed delivery, force a failed delivery, retry it, rotate the secret, and verify the new secret.
 8. Disconnect and confirm the next protected operation requires reconnection.
 9. On Nextcloud 31, verify encrypted session storage and reconnect. Upgrade that instance to Nextcloud 32 or later and verify that the session survives repeated reads and stays `ICrypto`-encrypted; run `occ maintenance:repair` and verify it becomes lazy sensitive user configuration. With an expired access token, open Webhooks and verify the parallel requests refresh once.
 
-Paid sends should use a dedicated workspace and recorded spending limit. The public assignment API has no accepted-price ceiling or idempotency key, so a live test must check document state after any lost response.
+Paid sends should use a dedicated workspace and recorded spending limit. Assignment and envelope creation send `max_total_credits` from the accepted estimate. Neither operation is automatically retried after an uncertain response; check document state before another send.
 
 ## Add a route
 

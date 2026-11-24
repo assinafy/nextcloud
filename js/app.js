@@ -23,6 +23,10 @@
 		connected: false,
 		folder: '',
 		fileId: null,
+		files: new Map(),
+		preparedDocuments: new Map(),
+		envelopePage: 1,
+		sendBusy: false,
 		documentId: null,
 		preparedKey: '',
 		quoteId: '',
@@ -86,6 +90,9 @@
 	}
 
 	async function withBusy(button, label, operation) {
+		const form = button.closest('#assinafy-send-form');
+		if (form && state.sendBusy) return;
+		if (form) { state.sendBusy = true; form.inert = true; }
 		const original = button.textContent;
 		button.disabled = true;
 		button.textContent = label;
@@ -94,6 +101,7 @@
 		} finally {
 			button.disabled = false;
 			button.textContent = original;
+			if (form) { state.sendBusy = false; form.inert = false; }
 		}
 	}
 
@@ -154,6 +162,15 @@
 			});
 			loadFiles('').catch(report);
 		} else {
+			clearQuote();
+			state.documentId = null;
+			state.preparedKey = '';
+			state.preparedDocuments.clear();
+			state.contracts = [];
+			state.webhookEndpoints = [];
+			state.editingEndpointId = null;
+			$('#assinafy-webhook-secret').replaceChildren();
+			$('#assinafy-webhook-secret').hidden = true;
 			$('#assinafy-connection-state').textContent = configured ? tr('Not connected') : tr('Setup required');
 			$('#assinafy-connection-state').className = 'assinafy-status';
 			$('#assinafy-connection-copy').textContent = configured
@@ -196,11 +213,17 @@
 			const label = document.createElement('label');
 			label.className = 'assinafy-file-row';
 			const radio = document.createElement('input');
-			radio.type = 'radio';
+			radio.type = isEnvelope() ? 'checkbox' : 'radio';
 			radio.name = 'assinafy-file';
 			radio.value = item.id;
-			radio.checked = Number(item.id) === state.fileId;
-			radio.addEventListener('change', () => selectFile(item));
+			radio.checked = isEnvelope() ? state.files.has(Number(item.id)) : Number(item.id) === state.fileId;
+			radio.addEventListener('change', () => {
+				if (!isEnvelope()) { selectFile(item); return; }
+				if (radio.checked) state.files.set(Number(item.id), item);
+				else state.files.delete(Number(item.id));
+				$('#assinafy-selected-files').textContent = Array.from(state.files.values(), (file) => file.name).join(', ');
+				clearQuote();
+			});
 			const name = document.createElement('span');
 			name.textContent = item.name;
 			const size = document.createElement('small');
@@ -368,10 +391,12 @@
 		};
 	}
 
-	async function estimateWithRetry(documentId, body) {
+	const isEnvelope = () => $('#assinafy-envelope-mode').checked;
+
+	async function estimateWithRetry(path, body) {
 		for (let attempt = 0; attempt < 20; attempt += 1) {
 			try {
-				return await api(`/api/documents/${encodeURIComponent(documentId)}/estimate`, {method: 'POST', body});
+				return await api(path, {method: 'POST', body});
 			} catch (error) {
 				if (!(error instanceof ApiError) || error.code !== 'document_not_ready' || attempt === 19) throw error;
 				$('#assinafy-live').textContent = tr('Assinafy is preparing the PDF…');
@@ -385,20 +410,36 @@
 		event.preventDefault();
 		const form = $('#assinafy-send-form');
 		if (!form.reportValidity()) return;
-		if (!state.fileId) {
+		if (state.sendBusy) return;
+		if (isEnvelope() ? state.files.size === 0 : !state.fileId) {
 			announce(tr('Choose a PDF file first.'), 'error');
 			return;
 		}
 		const button = $('#assinafy-estimate');
 		await withBusy(button, tr('Preparing…'), async () => {
 			const title = value('#assinafy-title');
+			clearQuote();
+			if (isEnvelope()) {
+				if (state.files.size > 20 || recipients().length > 20) throw new Error(tr('Envelopes support up to 20 PDFs and 20 recipients.'));
+				for (const [id, file] of state.files) {
+					if (!state.preparedDocuments.has(id)) {
+						const prepared = await api('/api/documents/prepare', {method: 'POST', body: {fileId: id, title: file.name.replace(/\.pdf$/i, '').slice(0, 250)}});
+						state.preparedDocuments.set(id, prepared.id);
+					}
+				}
+				const quote = await estimateWithRetry('/api/envelopes/estimate', envelopeInput());
+				state.quoteId = quote.quoteId;
+				state.quote = quote.estimate;
+				renderQuote();
+				return;
+			}
 			const key = `${state.fileId}:${title}`;
 			if (!state.documentId || state.preparedKey !== key) {
 				const document = await api('/api/documents/prepare', {method: 'POST', body: {fileId: state.fileId, title}});
 				state.documentId = document.id;
 				state.preparedKey = key;
 			}
-			const quote = await estimateWithRetry(state.documentId, {
+			const quote = await estimateWithRetry(`/api/documents/${encodeURIComponent(state.documentId)}/estimate`, {
 				recipients: recipients(),
 				ordered: $('#assinafy-ordered').checked,
 			});
@@ -467,11 +508,25 @@
 		$('#assinafy-send').disabled = !sufficient;
 	}
 
+	function envelopeInput() {
+		return {
+			name: value('#assinafy-title'),
+			documentIds: Array.from(state.files.keys(), (id) => state.preparedDocuments.get(id)),
+			recipients: recipients(),
+			expiresInDays: Number($('#assinafy-expiry').value),
+		};
+	}
+
 	async function sendDocument() {
-		if (!state.documentId || !state.quoteId) return;
+		if (state.sendBusy || (!isEnvelope() && !state.documentId) || !state.quoteId) return;
+		if (!$('#assinafy-send-form').reportValidity()) return;
 		const button = $('#assinafy-send');
 		try {
 			const result = await withBusy(button, tr('Sending…'), async () => {
+				if (isEnvelope()) {
+					await api('/api/envelopes/send', {method: 'POST', body: {...envelopeInput(), quoteId: state.quoteId, message: value('#assinafy-message')}});
+					return {};
+				}
 				const details = $('.assinafy-contract-details');
 				return api(`/api/documents/${encodeURIComponent(state.documentId)}/send`, {
 					method: 'POST',
@@ -488,20 +543,25 @@
 			if (result.contractError) {
 				announce(tr('The document was sent, but its contract terms were not saved: {message}', {message: result.contractError}), 'error');
 			} else {
-				announce(tr('The document was sent for signature.'), 'success');
+				announce(isEnvelope() ? tr('The envelope was sent for signature.') : tr('The document was sent for signature.'), 'success');
 			}
 			resetSendForm();
 		} catch (error) {
-			if (error instanceof ApiError && error.code === 'quote_changed') clearQuote();
+			clearQuote();
 			throw error;
 		}
 	}
 
 	function resetSendForm() {
 		state.fileId = null;
+		state.files.clear();
+		state.preparedDocuments.clear();
+		$('#assinafy-selected-files').textContent = '';
 		state.documentId = null;
 		state.preparedKey = '';
 		$('#assinafy-send-form').reset();
+		$('#assinafy-ordered').disabled = false;
+		$('.assinafy-contract-details').hidden = false;
 		$('#assinafy-recipients').replaceChildren();
 		addRecipient();
 		clearQuote();
@@ -528,6 +588,32 @@
 		$('#assinafy-documents-prev').disabled = state.documentPage === 1;
 		$('#assinafy-documents-next').disabled = data.items.length < 50;
 		$('#assinafy-documents-page').textContent = tr('Page {number}', {number: state.documentPage});
+	}
+
+	async function loadEnvelopes() {
+		const data = await api('/api/envelopes', {query: {page: state.envelopePage}});
+		const rows = data.items.map((item) => {
+			const row = document.createElement('tr');
+			row.append(cell(item.name), cell((item.documents || []).map((doc) => `${doc.name}: ${doc.status}`).join(', ')), cell(formatDate(item.created_at)));
+			const actions = document.createElement('td');
+			const button = document.createElement('button');
+			button.type = 'button';
+			button.textContent = tr('Cancel envelope');
+			button.addEventListener('click', async () => {
+				if (!window.confirm(tr('Cancel all unsigned documents in this envelope?'))) return;
+				try {
+					await withBusy(button, tr('Saving…'), () => api(`/api/envelopes/${encodeURIComponent(item.id)}/cancel`, {method: 'PUT'}));
+					await loadEnvelopes();
+				} catch (error) { report(error); }
+			});
+			actions.append(button);
+			row.append(actions);
+			return row;
+		});
+		$('#assinafy-envelopes-list').replaceChildren(table([tr('Envelope'), tr('Documents'), tr('Created'), tr('Actions')], rows, tr('No envelopes were returned.')));
+		$('#assinafy-envelopes-prev').disabled = state.envelopePage === 1;
+		$('#assinafy-envelopes-next').disabled = data.items.length < 20;
+		$('#assinafy-envelopes-page').textContent = tr('Page {number}', {number: state.envelopePage});
 	}
 
 	function documentIdFor(contract) {
@@ -834,6 +920,7 @@
 		});
 		$$('[data-panel-content]').forEach((content) => { content.hidden = content.dataset.panelContent !== panel; });
 		if (panel === 'documents') await loadDocuments();
+		if (panel === 'envelopes') await loadEnvelopes();
 		if (panel === 'contracts') await loadContracts();
 		if (panel === 'webhooks') await loadWebhooks();
 	}
@@ -856,6 +943,21 @@
 		if (tab) changePanel(tab.dataset.panel).catch(report);
 	});
 	$('#assinafy-folder-up').addEventListener('click', () => loadFiles(state.folder.split('/').slice(0, -1).join('/')).catch(report));
+	$('#assinafy-envelope-mode').addEventListener('change', () => {
+		state.fileId = null;
+		state.documentId = null;
+		state.preparedKey = '';
+		$('#assinafy-ordered').checked = false;
+		$('#assinafy-ordered').disabled = isEnvelope();
+		$('.assinafy-contract-details').hidden = isEnvelope();
+		$('.assinafy-contract-details').open = false;
+		clearQuote();
+		loadFiles(state.folder).catch(report);
+	});
+	$('#assinafy-expiry').addEventListener('input', clearQuote);
+	$('#assinafy-refresh-envelopes').addEventListener('click', () => loadEnvelopes().catch(report));
+	$('#assinafy-envelopes-prev').addEventListener('click', () => { state.envelopePage = Math.max(1, state.envelopePage - 1); loadEnvelopes().catch(report); });
+	$('#assinafy-envelopes-next').addEventListener('click', () => { state.envelopePage += 1; loadEnvelopes().catch(report); });
 	$('#assinafy-add-recipient').addEventListener('click', () => {
 		addRecipient();
 		clearQuote();

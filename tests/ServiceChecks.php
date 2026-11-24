@@ -501,6 +501,8 @@ function runServiceChecks(callable $check, callable $rejects): void
     $check($client->requests === [], 'Preconditionless standalone contract edit reached Assinafy.');
     $rejects(static fn () => $api->send('document-test', serviceTestRecipients(), false, 'quote', '', 30, ['start_date' => 'not-a-date']), 'Invalid contract reached the paid send path.');
     $check($client->requests === [], 'Invalid contract terms caused upstream work before assignment.');
+    $rejects(static fn () => $api->estimate('document-test', array_merge(serviceTestRecipients(), serviceTestRecipients()), false), 'Duplicate recipients were accepted.');
+    $check($client->requests === [], 'Duplicate recipients caused upstream work.');
 
     $client = new ServiceTestClient([serviceTestApiResponse(['document_id' => 'document-test'])]);
     [$oauth] = serviceTestOAuth(new ServiceTestClientService($client), serviceTestSession());
@@ -527,6 +529,7 @@ function runServiceChecks(callable $check, callable $rejects): void
     $check($result['assignment']['id'] === 'assignment-test', 'Assignment result was not preserved.');
     $check($result['contract']['status'] === 'draft' && $result['contractError'] === null, 'New contract was not written after assignment.');
     $assignmentBody = json_decode($client->requests[5][2]['body'], true, 512, JSON_THROW_ON_ERROR);
+    $check($assignmentBody['max_total_credits'] === 0, 'The paid send did not enforce the accepted credit ceiling.');
     $check(
         $assignmentBody['expires_at'] === gmdate('c', ServiceTestTimeFactory::NOW + 30 * 86400),
         'Assignment expiry did not use the injected clock.',

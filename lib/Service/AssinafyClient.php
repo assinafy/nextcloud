@@ -41,7 +41,10 @@ final class AssinafyClient
         return $document;
     }
 
-    /** @param list<array<string, mixed>> $input @return array{estimate: array<string, mixed>, quoteId: string} */
+    /**
+     * @param array<array-key, mixed> $input
+     * @return array{estimate: array<array-key, mixed>, quoteId: string}
+     */
     public function estimate(string $documentId, array $input, bool $ordered): array
     {
         $recipients = $this->recipients($input, $ordered);
@@ -60,9 +63,9 @@ final class AssinafyClient
     }
 
     /**
-     * @param list<array<string, mixed>> $input
+     * @param array<array-key, mixed> $input
      * @param array<string, mixed> $contract
-     * @return array<string, mixed>
+     * @return array<array-key, mixed>
      */
     public function send(
         string $documentId,
@@ -82,12 +85,7 @@ final class AssinafyClient
         $contractTerms = $contract === [] ? [] : ContractInput::sanitize($contract);
         $recipients = $this->recipients($input, $ordered);
         $current = $this->estimate($documentId, $input, $ordered);
-        if (!hash_equals($current['quoteId'], $quoteId)) {
-            throw new AssinafyException('The Assinafy price changed. Review the new estimate before sending.', 409, 'quote_changed');
-        }
-        if (($current['estimate']['has_sufficient_resources'] ?? false) !== true) {
-            throw new AssinafyException('The Assinafy workspace has insufficient resources.', 409, 'insufficient_resources');
-        }
+        $this->checkQuote($current['estimate'], $quoteId);
 
         $signers = [];
         foreach ($recipients as $index => $recipient) {
@@ -97,6 +95,7 @@ final class AssinafyClient
             'method' => 'virtual',
             'signers' => $signers,
             'message' => trim($message),
+            'max_total_credits' => $current['estimate']['total_credits'],
             'expires_at' => gmdate('c', $this->timeFactory->getTime() + $expiresInDays * 86400),
         ], timeout: 180);
 
@@ -123,6 +122,104 @@ final class AssinafyClient
     }
 
     /** @return list<mixed> */
+    public function envelopes(int $page): array
+    {
+        return $this->list($this->accountPath('/envelopes'), ['page' => max(1, $page), 'per-page' => 20]);
+    }
+
+    /**
+     * @param array<array-key, mixed> $documentIds
+     * @param array<array-key, mixed> $input
+     * @return array<array-key, mixed>
+     */
+    public function estimateEnvelope(string $name, array $documentIds, array $input, int $expiresInDays): array
+    {
+        $body = $this->envelopeBody($name, $documentIds, $input, '', $expiresInDays);
+        $estimate = $this->request('POST', $this->accountPath('/envelopes/estimate-cost'), json: $body);
+        return ['estimate' => $estimate, 'quoteId' => Quote::fingerprint($estimate)];
+    }
+
+    /**
+     * @param array<array-key, mixed> $documentIds
+     * @param array<array-key, mixed> $input
+     * @return array<array-key, mixed>
+     */
+    public function sendEnvelope(string $name, array $documentIds, array $input, string $quoteId, string $message, int $expiresInDays): array
+    {
+        $body = $this->envelopeBody($name, $documentIds, $input, $message, $expiresInDays);
+        $estimate = $this->request('POST', $this->accountPath('/envelopes/estimate-cost'), json: $body);
+        $this->checkQuote($estimate, $quoteId);
+        $body['max_total_credits'] = $estimate['total_credits'];
+        return $this->request('POST', $this->accountPath('/envelopes'), json: $body, timeout: 180);
+    }
+
+    /** @return array<array-key, mixed> */
+    public function cancelEnvelope(string $envelopeId): array
+    {
+        return $this->request('PUT', $this->accountPath('/envelopes/' . rawurlencode($envelopeId) . '/cancel'));
+    }
+
+    /** @param array<array-key, mixed> $estimate */
+    private function checkQuote(array $estimate, string $quoteId): void
+    {
+        if (!hash_equals(Quote::fingerprint($estimate), $quoteId)) {
+            throw new AssinafyException('The Assinafy price changed. Review the new estimate before sending.', 409, 'quote_changed');
+        }
+        if ($estimate['has_sufficient_resources'] !== true) {
+            throw new AssinafyException('The Assinafy workspace has insufficient resources.', 409, 'insufficient_resources');
+        }
+    }
+
+    /**
+     * @param array<array-key, mixed> $documentIds
+     * @param array<array-key, mixed> $input
+     * @return array<array-key, mixed>
+     */
+    private function envelopeBody(string $name, array $documentIds, array $input, string $message, int $expiresInDays): array
+    {
+        $name = trim($name);
+        if ($name === '' || mb_strlen($name) > 255 || str_contains($name, '<')) {
+            throw new AssinafyException('Envelope names must contain 1 to 255 plain-text characters.');
+        }
+        if (!array_is_list($documentIds) || count($documentIds) < 1 || count($documentIds) > 20) {
+            throw new AssinafyException('Choose between 1 and 20 documents for an envelope.');
+        }
+        foreach ($documentIds as $id) {
+            if (!is_string($id) || preg_match('/^[A-Za-z0-9_-]{1,255}$/D', $id) !== 1) {
+                throw new AssinafyException('An envelope document ID is invalid.');
+            }
+        }
+        if (count(array_unique($documentIds)) !== count($documentIds)) {
+            throw new AssinafyException('Each envelope document must appear only once.');
+        }
+        if (count($input) > 20) {
+            throw new AssinafyException('An envelope supports at most 20 recipients.');
+        }
+        $recipients = $this->recipients($input, false);
+        if ($expiresInDays < 1 || $expiresInDays > 365 || mb_strlen($message) > 2000) {
+            throw new AssinafyException('Use a deadline of 1 to 365 days and a message of at most 2,000 characters.');
+        }
+        foreach ($documentIds as $id) {
+            $document = $this->request('GET', '/documents/' . rawurlencode($id));
+            if (($document['status'] ?? null) !== 'metadata_ready' || !empty($document['assignment'])) {
+                throw new AssinafyException('The document is still processing or has already been sent.', 409, 'document_not_ready');
+            }
+        }
+        $signers = array_map(fn (Recipient $recipient): array => ['id' => $this->resolveSigner($recipient)] + $recipient->terms(), $recipients);
+        return [
+            'name' => $name,
+            'message' => trim($message),
+            'signers' => $signers,
+            'documents' => array_map(fn (string $id): array => [
+                'id' => $id,
+                'method' => 'virtual',
+                'signer_ids' => array_column($signers, 'id'),
+                'expires_at' => gmdate('c', $this->timeFactory->getTime() + $expiresInDays * 86400),
+            ], $documentIds),
+        ];
+    }
+
+    /** @return list<mixed> */
     public function contracts(array $filters): array
     {
         $allowed = array_intersect_key($filters, array_flip([
@@ -140,11 +237,14 @@ final class AssinafyClient
         ]));
         $allowed['expand'] = 'document';
         $allowed['page'] = max(1, (int) ($allowed['page'] ?? 1));
-        $allowed['per-page'] = min(100, max(1, (int) ($allowed['per-page'] ?? 25)));
+        $allowed['per-page'] = min(50, max(1, (int) ($allowed['per-page'] ?? 25)));
         return $this->list($this->accountPath('/contracts'), $allowed);
     }
 
-    /** @param array<string, mixed> $input @return array<string, mixed> */
+    /**
+     * @param array<string, mixed> $input
+     * @return array<array-key, mixed>
+     */
     public function saveContract(string $documentId, array $input): array
     {
         $terms = ContractInput::sanitize($input);
@@ -154,36 +254,43 @@ final class AssinafyClient
         return $this->writeContract($documentId, $terms);
     }
 
-    /** @param array<string, mixed> $input @return array<string, mixed> */
+    /**
+     * @param array<string, mixed> $input
+     * @return array<array-key, mixed>
+     */
     public function renewContract(string $documentId, array $input): array
     {
         $body = [];
-        if (isset($input['term']) && (is_int($input['term']) || ctype_digit((string) $input['term'])) && (int) $input['term'] >= 1) {
+        if (isset($input['term']) && (is_int($input['term']) || is_string($input['term']) && ctype_digit($input['term'])) && (int) $input['term'] >= 1) {
             $body['term'] = (int) $input['term'];
         } elseif (isset($input['term'])) {
             throw new AssinafyException('Renewal requires the current contract term.');
         }
-        $updatedAt = trim((string) ($input['updated_at'] ?? ''));
-        if ($updatedAt !== '') {
-            $body += ContractInput::sanitize(['updated_at' => $updatedAt], true);
+        if (isset($input['updated_at']) && $input['updated_at'] !== '') {
+            $body += ContractInput::sanitize(['updated_at' => $input['updated_at']], true);
         }
-        if ($body === []) {
+        if (!isset($body['term'])) {
             throw new AssinafyException('Renewal requires the current contract term.');
         }
         return $this->request('POST', $this->accountPath('/documents/' . rawurlencode($documentId) . '/contract/renew'), json: $body);
     }
 
-    /** @param array<string, mixed> $input @return array<string, mixed> */
+    /**
+     * @param array<string, mixed> $input
+     * @return array<array-key, mixed>
+     */
     public function terminateContract(string $documentId, array $input): array
     {
-        $reason = trim((string) ($input['reason'] ?? ''));
+        if (isset($input['reason']) && !is_string($input['reason'])) {
+            throw new AssinafyException('Termination reasons must be strings.');
+        }
+        $reason = trim($input['reason'] ?? '');
         if (mb_strlen($reason) > 500) {
             throw new AssinafyException('Termination reasons must be at most 500 characters.');
         }
         $body = $reason === '' ? [] : ['reason' => $reason];
-        $updatedAt = trim((string) ($input['updated_at'] ?? ''));
-        if ($updatedAt !== '') {
-            $body += ContractInput::sanitize(['updated_at' => $updatedAt], true);
+        if (isset($input['updated_at']) && $input['updated_at'] !== '') {
+            $body += ContractInput::sanitize(['updated_at' => $input['updated_at']], true);
         }
         return $this->request('POST', $this->accountPath('/documents/' . rawurlencode($documentId) . '/contract/terminate'), json: $body);
     }
@@ -200,13 +307,19 @@ final class AssinafyClient
         return $this->list($this->accountPath('/webhooks/endpoints'));
     }
 
-    /** @param array<string, mixed> $input @return array<string, mixed> */
+    /**
+     * @param array<string, mixed> $input
+     * @return array<array-key, mixed>
+     */
     public function createWebhookEndpoint(array $input): array
     {
         return $this->request('POST', $this->accountPath('/webhooks/endpoints'), json: WebhookInput::sanitize($input));
     }
 
-    /** @param array<string, mixed> $input @return array<string, mixed> */
+    /**
+     * @param array<string, mixed> $input
+     * @return array<array-key, mixed>
+     */
     public function updateWebhookEndpoint(string $endpointId, array $input): array
     {
         return $this->request('PUT', $this->accountPath('/webhooks/endpoints/' . rawurlencode($endpointId)), json: WebhookInput::sanitize($input, true));
@@ -232,7 +345,7 @@ final class AssinafyClient
     {
         $allowed = array_intersect_key($filters, array_flip(['endpoint_id', 'event', 'delivered', 'from', 'to', 'page', 'per-page']));
         $allowed['page'] = max(1, (int) ($allowed['page'] ?? 1));
-        $allowed['per-page'] = min(100, max(1, (int) ($allowed['per-page'] ?? 20)));
+        $allowed['per-page'] = min(50, max(1, (int) ($allowed['per-page'] ?? 20)));
         return $this->list($this->accountPath('/webhooks'), $allowed);
     }
 
@@ -242,16 +355,19 @@ final class AssinafyClient
         return $this->request('POST', $this->accountPath('/webhooks/' . rawurlencode($deliveryId) . '/retry'));
     }
 
-    /** @param array<string, mixed> $terms @return array<string, mixed> */
+    /**
+     * @param array<string, mixed> $terms
+     * @return array<array-key, mixed>
+     */
     private function writeContract(string $documentId, array $terms): array
     {
         return $this->request('PUT', $this->accountPath('/documents/' . rawurlencode($documentId) . '/contract'), json: $terms);
     }
 
-    /** @return array<string, mixed> */
+    /** @return array<array-key, mixed> */
     private function upload(File $file): array
     {
-        return $this->perform('POST', $this->accountPath('/documents'), function (string $token) use ($file): array {
+        return $this->perform('POST', OAuthService::API_BASE . $this->accountPath('/documents'), function (string $token) use ($file): array {
             $stream = $file->fopen('r');
             if (!is_resource($stream)) {
                 throw new AssinafyException('The Nextcloud file could not be read.', 500, 'file_read_failed');
@@ -271,7 +387,10 @@ final class AssinafyClient
         });
     }
 
-    /** @param array<string, scalar|null> $query @return list<mixed> */
+    /**
+     * @param array<string, scalar|null> $query
+     * @return list<mixed>
+     */
     private function list(string $path, array $query = []): array
     {
         $data = $this->request('GET', $path, $query);
@@ -284,7 +403,7 @@ final class AssinafyClient
     /**
      * @param array<string, scalar|null> $query
      * @param array<string, mixed>|null $json
-     * @return array<string, mixed>|list<mixed>
+     * @return array<array-key, mixed>|list<mixed>
      */
     private function request(string $method, string $path, array $query = [], ?array $json = null, int $timeout = 30): array
     {
@@ -308,14 +427,17 @@ final class AssinafyClient
         });
     }
 
-    /** @param callable(string): array<string, mixed> $options @return array<string, mixed>|list<mixed> */
+    /**
+     * @param callable(string): array<string, mixed> $options
+     * @return array<array-key, mixed>|list<mixed>
+     */
     private function perform(string $method, string $url, callable $options): array
     {
         for ($attempt = 0; $attempt < 2; $attempt++) {
-            $token = $attempt === 0 ? $this->oauth->accessToken() : (string) $this->oauth->refresh(true)['accessToken'];
+            $token = $attempt === 0 ? $this->oauth->accessToken() : (string) $this->oauth->refresh(true, $token)['accessToken'];
             $requestOptions = $options($token);
             try {
-                $response = $this->clients->newClient()->request($method, $url, $requestOptions);
+                $response = $this->clients->newClient()->request($method, $url, $requestOptions + ['allow_redirects' => false]);
             } catch (Throwable $error) {
                 throw new AssinafyException('Assinafy could not be reached.', 503, 'transport_error');
             } finally {
@@ -332,14 +454,15 @@ final class AssinafyClient
                 continue;
             }
             if ($status === 401) {
-                $this->oauth->invalidate();
+                $this->oauth->invalidate($token);
                 throw new AssinafyException('Your Assinafy session expired. Connect again.', 401, 'session_expired');
             }
             if ($status < 200 || $status >= 300) {
                 $message = is_array($decoded) && is_string($decoded['message'] ?? null)
                     ? $decoded['message']
                     : 'Assinafy rejected the request.';
-                throw new AssinafyException($message, $status >= 400 && $status < 600 ? $status : 502, 'api_error');
+                $code = ($decoded['code'] ?? null) === 'CreditCeilingExceeded' ? 'quote_changed' : 'api_error';
+                throw new AssinafyException($message, $status >= 400 && $status < 600 ? $status : 502, $code);
             }
             $data = is_array($decoded) && array_key_exists('status', $decoded) && array_key_exists('data', $decoded)
                 ? $decoded['data']
@@ -352,7 +475,7 @@ final class AssinafyClient
         throw new AssinafyException('Your Assinafy session expired. Connect again.', 401, 'session_expired');
     }
 
-    /** @return array<string, mixed>|list<mixed>|null */
+    /** @return array<array-key, mixed>|list<mixed>|null */
     private function decode(string $body): ?array
     {
         if ($body === '') {
@@ -366,18 +489,27 @@ final class AssinafyClient
         }
     }
 
-    /** @param list<array<string, mixed>> $input @return list<Recipient> */
+    /**
+     * @param array<array-key, mixed> $input
+     * @return list<Recipient>
+     */
     private function recipients(array $input, bool $ordered): array
     {
         if ($input === [] || count($input) > 50) {
             throw new AssinafyException('Add between 1 and 50 recipients.');
         }
         $recipients = [];
+        $emails = [];
         foreach ($input as $recipient) {
             if (!is_array($recipient)) {
                 throw new AssinafyException('Each recipient must be an object.');
             }
-            $recipients[] = Recipient::fromArray($recipient);
+            $validated = Recipient::fromArray($recipient);
+            if (isset($emails[$validated->email])) {
+                throw new AssinafyException('Each recipient email must appear only once.');
+            }
+            $emails[$validated->email] = true;
+            $recipients[] = $validated;
         }
         Recipient::validateSigningOrder($recipients, $ordered);
         return $recipients;

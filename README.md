@@ -18,7 +18,7 @@ Quando o app estiver disponível na App Store do Nextcloud, instale o **Assinafy
 
 ```sh
 cd /caminho/para/nextcloud/apps
-tar -xzf assinafy-0.3.1.tar.gz
+tar -xzf assinafy-0.4.0.tar.gz
 php /caminho/para/nextcloud/occ app:enable assinafy
 ```
 
@@ -54,20 +54,22 @@ A integração descobre os endpoints de autorização, token, revogação e recu
 8. Selecione **Revisar preço**. O app envia o PDF, aguarda o processamento dos metadados na Assinafy e solicita a estimativa atual da solicitação `virtual`.
 9. Revise o total de créditos, os saldos, as cobranças detalhadas, o uso de documento extra e a disponibilidade de recursos.
 10. Selecione **Enviar para assinatura**. O servidor obtém uma nova estimativa e recusa o envio quando algum componente da cobrança mudou ou os recursos são insuficientes.
-11. Use **Documentos** para consultar o estado recente dos documentos na Assinafy.
-12. Use **Contratos** para pesquisar os termos acompanhados, editá-los com a pré-condição obrigatória do `updated_at` atual, renová-los a partir do termo vigente ou encerrá-los com um motivo opcional.
-13. Use **Webhooks** para criar, pausar, retomar, excluir ou rotacionar o segredo de um endpoint de webhook; consultar as entregas recentes; e reenviar uma entrega que falhou.
+11. Para enviar vários PDFs, selecione **Enviar vários PDFs como um envelope**, informe o nome, escolha até 20 PDFs e 20 signatários e revise o preço antes de enviar. Os signatários assinam todos os PDFs em paralelo; certificado digital exige um único signatário. Use **Envelopes** para acompanhar cada documento ou cancelar os documentos não assinados. O envio de envelopes não inclui termos de contrato.
+12. Use **Documentos** para consultar o estado recente dos documentos na Assinafy.
+13. Use **Contratos** para pesquisar os termos acompanhados, editá-los com a pré-condição obrigatória do `updated_at` atual, renová-los a partir do termo vigente ou encerrá-los com um motivo opcional.
+14. Use **Webhooks** para criar, pausar, retomar, excluir ou rotacionar o segredo de um endpoint de webhook; consultar as entregas recentes; e reenviar uma entrega que falhou.
 
 Quando a assinatura de webhooks estiver habilitada, guarde imediatamente o segredo `whsec_…` retornado. Aplicativos OAuth só o recebem quando a Assinafy o cria ou rotaciona. Os receptores devem verificar os cabeçalhos do Standard Webhooks sobre o corpo da requisição sem alterações e rejeitar carimbos de tempo antigos.
 
 ## Limites de operação
 
 - O seletor de arquivos usa a API de arquivos do Nextcloud restrita ao usuário. Um ID de arquivo fora da árvore de arquivos do usuário autenticado é rejeitado.
+- A assinatura incorporada não está disponível: a Assinafy não permite criar sessões Embed com tokens de aplicativos OAuth.
 - O envio usa `method: "virtual"`; nenhum campo de assinatura é posicionado no documento.
 - A1 e A3 são mídias de certificado ICP-Brasil do lado do signatário, tratadas pelo mesmo método `DigitalCertificate`.
 - Conflitos de e-mail, de telefone de WhatsApp ou de CPF/CNPJ de um contato interrompem o envio em vez de alterar silenciosamente um contato existente na Assinafy.
 - Se a assinatura for criada, mas o armazenamento dos termos do contrato falhar, a resposta informa a solicitação de assinatura e, separadamente, o erro do contrato.
-- A Assinafy não publica um campo atômico de preço máximo nem de idempotência para a criação da solicitação de assinatura. O app refaz a estimativa imediatamente antes da criação; ainda assim, uma perda de conexão durante a criação pode deixar o resultado final desconhecido. Consulte **Documentos** antes de iniciar outra solicitação a partir do mesmo arquivo.
+- O app refaz a estimativa e envia `max_total_credits` para impedir uma cobrança maior. A criação da solicitação não tem chave de idempotência; ainda assim, uma perda de conexão durante a criação pode deixar o resultado final desconhecido. Consulte **Documentos** antes de iniciar outra solicitação a partir do mesmo arquivo.
 - Ao desconectar, o app remove a autorização criptografada local antes de tentar revogar o token.
 - Ao excluir uma conta de usuário do Nextcloud, o app remove a autorização criptografada e tenta revogar o token desse usuário antes da exclusão.
 

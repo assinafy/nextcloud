@@ -57,7 +57,7 @@ final class ApiController extends Controller
     }
 
     #[NoAdminRequired]
-    #[UserRateLimit(limit: 10, period: 60)]
+    #[UserRateLimit(limit: 30, period: 60)]
     public function prepareDocument(int $fileId, string $title): DataResponse
     {
         return $this->run(fn (): array => $this->client->prepare($this->files->pdf($fileId), $title));
@@ -71,7 +71,10 @@ final class ApiController extends Controller
         return $this->run(fn (): array => $this->client->estimate($documentId, $recipients, $ordered));
     }
 
-    /** @param list<array<string, mixed>> $recipients @param array<string, mixed> $contract */
+    /**
+     * @param list<array<string, mixed>> $recipients
+     * @param array<string, mixed> $contract
+     */
     #[NoAdminRequired]
     #[UserRateLimit(limit: 10, period: 60)]
     public function sendDocument(
@@ -98,6 +101,41 @@ final class ApiController extends Controller
     public function documents(string $search = '', string $status = '', int $page = 1): DataResponse
     {
         return $this->run(fn (): array => ['items' => $this->client->documents($search, $status, $page)]);
+    }
+
+    #[NoAdminRequired]
+    public function envelopes(int $page = 1): DataResponse
+    {
+        return $this->run(fn (): array => ['items' => $this->client->envelopes($page)]);
+    }
+
+    /**
+     * @param list<string> $documentIds
+     * @param list<array<string, mixed>> $recipients
+     */
+    #[NoAdminRequired]
+    #[UserRateLimit(limit: 30, period: 60)]
+    public function estimateEnvelope(string $name, array $documentIds, array $recipients, int $expiresInDays = 30): DataResponse
+    {
+        return $this->run(fn (): array => $this->client->estimateEnvelope($name, $documentIds, $recipients, $expiresInDays));
+    }
+
+    /**
+     * @param list<string> $documentIds
+     * @param list<array<string, mixed>> $recipients
+     */
+    #[NoAdminRequired]
+    #[UserRateLimit(limit: 10, period: 60)]
+    public function sendEnvelope(string $name, array $documentIds, array $recipients, string $quoteId, string $message = '', int $expiresInDays = 30): DataResponse
+    {
+        return $this->run(fn (): array => $this->client->sendEnvelope($name, $documentIds, $recipients, $quoteId, $message, $expiresInDays));
+    }
+
+    #[NoAdminRequired]
+    #[UserRateLimit(limit: 10, period: 60)]
+    public function cancelEnvelope(string $envelopeId): DataResponse
+    {
+        return $this->run(fn (): array => $this->client->cancelEnvelope($envelopeId));
     }
 
     #[NoAdminRequired]
@@ -199,7 +237,7 @@ final class ApiController extends Controller
         return $this->run(fn (): array => $this->client->retryWebhookDelivery($deliveryId));
     }
 
-    /** @param callable(): array<string, mixed> $operation */
+    /** @param callable(): array<array-key, mixed> $operation */
     private function run(callable $operation): DataResponse
     {
         try {

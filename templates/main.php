@@ -27,12 +27,16 @@ declare(strict_types=1);
 	<nav class="assinafy-tabs" aria-label="<?php p($l->t('Assinafy work areas')); ?>">
 		<button type="button" class="assinafy-tab is-active" data-panel="send" aria-selected="true"><?php p($l->t('Send')); ?></button>
 		<button type="button" class="assinafy-tab" data-panel="documents" aria-selected="false"><?php p($l->t('Documents')); ?></button>
+		<button type="button" class="assinafy-tab" data-panel="envelopes" aria-selected="false"><?php p($l->t('Envelopes')); ?></button>
 		<button type="button" class="assinafy-tab" data-panel="contracts" aria-selected="false"><?php p($l->t('Contracts')); ?></button>
 		<button type="button" class="assinafy-tab" data-panel="webhooks" aria-selected="false"><?php p($l->t('Webhooks')); ?></button>
 	</nav>
 
 	<section id="assinafy-panel-send" class="assinafy-panel" data-panel-content="send">
 		<form id="assinafy-send-form">
+			<label class="assinafy-check"><input id="assinafy-envelope-mode" type="checkbox"><span><?php p($l->t('Send several PDFs as an envelope')); ?></span></label>
+			<p><?php p($l->t('Envelopes send up to 20 PDFs to the same recipients in parallel. Certificate signing requires a single recipient.')); ?></p>
+			<p id="assinafy-selected-files" aria-live="polite"></p>
 			<div class="assinafy-send-grid">
 				<section class="assinafy-work-block" aria-labelledby="assinafy-file-heading">
 					<div class="assinafy-block-heading">
@@ -116,6 +120,19 @@ declare(strict_types=1);
 			<button id="assinafy-documents-prev" type="button"><?php p($l->t('Previous')); ?></button>
 			<span id="assinafy-documents-page"></span>
 			<button id="assinafy-documents-next" type="button"><?php p($l->t('Next')); ?></button>
+		</div>
+	</section>
+
+	<section id="assinafy-panel-envelopes" class="assinafy-panel" data-panel-content="envelopes" hidden>
+		<div class="assinafy-panel-heading">
+			<h2><?php p($l->t('Envelopes')); ?></h2>
+			<button id="assinafy-refresh-envelopes" type="button"><?php p($l->t('Refresh')); ?></button>
+		</div>
+		<div id="assinafy-envelopes-list" class="assinafy-table-wrap"></div>
+		<div class="assinafy-pagination" aria-label="<?php p($l->t('Envelope pages')); ?>">
+			<button id="assinafy-envelopes-prev" type="button"><?php p($l->t('Previous')); ?></button>
+			<span id="assinafy-envelopes-page"></span>
+			<button id="assinafy-envelopes-next" type="button"><?php p($l->t('Next')); ?></button>
 		</div>
 	</section>
 

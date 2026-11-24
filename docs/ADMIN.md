@@ -2,7 +2,7 @@
 
 ## Compatibility
 
-The app supports Nextcloud 31–35 on 64-bit PHP 8.3–8.5 with JSON and OpenSSL. Serve Nextcloud over HTTPS and keep its background jobs, mail, database, and system clock healthy.
+The app supports Nextcloud 31–35 on 64-bit PHP 8.3–8.5 with JSON, mbstring, and OpenSSL. Serve Nextcloud over HTTPS and keep its background jobs, mail, database, and system clock healthy.
 
 ## Register the OAuth client
 
@@ -34,7 +34,7 @@ Back up the Nextcloud instance secret and configuration with the database. Chang
 
 ## Permissions
 
-Nextcloud authentication and CSRF protection apply to every application write. The OAuth callback is the only state-changing route exempt from CSRF because the signed OAuth state and authenticated Nextcloud session bind the response.
+Nextcloud authentication and CSRF protection apply to every application write. The OAuth callback is the only state-changing route exempt from CSRF because the random OAuth state and authenticated Nextcloud session bind the response.
 
 Assinafy still enforces workspace role, plan, feature, balance, and scope permissions. A Nextcloud administrator configuring the client does not grant an Assinafy user owner-only access.
 
@@ -61,3 +61,5 @@ Never put a webhook signing secret into Nextcloud app configuration unless a sep
 5. Connect a non-production Assinafy workspace and exercise connect, estimate, send, contracts, and webhook management before broad rollout.
 
 Version `0.x` releases may add validated fields or adjust local route payloads while preserving the documented Assinafy resource behavior.
+
+Envelopes require the workspace’s Envelopes plan feature and use the existing document scopes. Embedded signing is not exposed: Assinafy refuses embed-origin management and session creation to OAuth applications.

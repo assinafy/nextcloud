@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.4.0] - 2026-11-24
+
+### Added
+
+- Send up to 20 Nextcloud PDFs as an envelope to the same recipients, review the combined price, track each document, and cancel unsigned documents.
+
+### Fixed
+
+- PDF uploads use the complete Assinafy API URL.
+- Document and envelope sends enforce the confirmed credit total with `max_total_credits`.
+- Pending sends lock the form, and unsuccessful sends require a new price review.
+- Late authorization failures preserve a newer OAuth session; cache-reload failures release the user lock.
+- Duplicate recipients and malformed text or webhook event values are rejected before submission.
+- Contract and webhook list page sizes respect the API's 50-item limit.
+
 ## [0.3.2] - 2026-11-17
 
 ### Fixed
@@ -58,6 +73,8 @@ First public release.
 - Responsive English interface and Brazilian Portuguese localization.
 - Administration settings, automated checks, release packaging, and operator documentation.
 
+[0.4.0]: https://github.com/assinafy/nextcloud/releases/tag/v0.4.0
+[0.3.2]: https://github.com/assinafy/nextcloud/releases/tag/v0.3.2
 [0.3.1]: https://github.com/assinafy/nextcloud/releases/tag/v0.3.1
 [0.3.0]: https://github.com/assinafy/nextcloud/releases/tag/v0.3.0
 [0.2.0]: https://github.com/assinafy/nextcloud/releases/tag/v0.2.0

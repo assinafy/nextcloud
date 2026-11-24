@@ -39,6 +39,11 @@ final class Recipient
     /** @param array<string, mixed> $input */
     public static function fromArray(array $input): self
     {
+        foreach (['name', 'email', 'method', 'notification', 'phone', 'taxId'] as $key) {
+            if (isset($input[$key]) && !is_string($input[$key])) {
+                throw new AssinafyException('Text fields must be strings.');
+            }
+        }
         $name = trim((string) ($input['name'] ?? ''));
         $email = trim((string) ($input['email'] ?? ''));
         $method = (string) ($input['method'] ?? '');

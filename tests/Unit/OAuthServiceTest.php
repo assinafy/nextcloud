@@ -34,6 +34,7 @@ final class OAuthServiceTest extends TestCase
     /** @var array<string, string> */
     private array $userValues;
     private bool $failWrites;
+    private bool $failReload;
     /** @var list<array{string, string, array<string, mixed>}> */
     private array $requests;
     /** @var list<string> */
@@ -45,6 +46,7 @@ final class OAuthServiceTest extends TestCase
     {
         $this->userValues = [];
         $this->failWrites = false;
+        $this->failReload = false;
         $this->requests = [];
         $this->events = [];
 
@@ -52,6 +54,11 @@ final class OAuthServiceTest extends TestCase
         $appConfig->method('getValueString')->willReturn('public-client');
 
         $userConfig = $this->createStub(IUserConfig::class);
+        $userConfig->method('clearCache')->willReturnCallback(function (): void {
+            if ($this->failReload) {
+                throw new RuntimeException('Synthetic cache failure.');
+            }
+        });
         $userConfig->method('getValueString')->willReturnCallback(
             fn (string $userId, string $app, string $key, string $default = ''): string => $this->userValues["{$userId}:{$app}:{$key}"] ?? $default,
         );
@@ -104,6 +111,30 @@ final class OAuthServiceTest extends TestCase
             $timeFactory,
             $this->createStub(ISecureRandom::class),
         );
+    }
+
+    #[Test]
+    public function cacheReloadFailureReleasesTheUserLock(): void
+    {
+        $this->failReload = true;
+        try {
+            $this->oauth->invalidate();
+            self::fail('Cache reload failure was hidden.');
+        } catch (RuntimeException $error) {
+            self::assertSame('Synthetic cache failure.', $error->getMessage());
+            self::assertSame(['lock', 'unlock'], $this->events);
+        }
+    }
+
+    #[Test]
+    public function anOldUnauthorizedResponseCannotRefreshOrDeleteAReplacementSession(): void
+    {
+        $this->put('oauth_session', ['accessToken' => 'new-access'] + $this->session());
+        self::assertSame('new-access', $this->oauth->refresh(true, 'old-access')['accessToken']);
+        $this->oauth->invalidate('old-access');
+        self::assertArrayHasKey($this->key('oauth_session'), $this->userValues);
+        self::assertSame([], $this->requests);
+        self::assertSame(['lock', 'unlock', 'lock', 'unlock'], $this->events);
     }
 
     #[Test]
